@@ -1,8 +1,8 @@
 import fetch from 'node-fetch';
 import express from 'express';
-import bodyParser from 'body-parser';
 import sql from 'mssql';
 import cors from 'cors';
+import bodyParser from 'body-parser';
 
 const config = {
   server: "103.235.104.114",
@@ -14,6 +14,7 @@ const config = {
   options: {
     trustedConnection: true,
     trustServerCertificate: true,
+    enableArithAbort: true,
   },
 };
 
@@ -26,13 +27,51 @@ sql.connect(config, function (err) {
 });
 
 const app = express();
-app.use(bodyParser.json());
 app.use(cors());
+app.use(bodyParser.json());
 
-const request = new sql.Request();
+app.get('/api/login', async (req, res) => {
+  const { user, pass } = req.query;
+  try {
+    const requestWithParams = new sql.Request();
+    requestWithParams.input('UserName', sql.NVarChar, user);
+    requestWithParams.input('Password', sql.NVarChar, pass);
+    const result = await requestWithParams.execute('Qry_GetUser');
+    res.json(result.recordset).status(200);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Error calling the stored procedure');
+  }
+});
 
+const authenticateToken = async (req, res, next) => {
+  let userDatabaseToken = '';
+  const userToken = req.header('Authorization');
+  if (!userToken) {
+    return res.status(401).json({ message: 'Unauthorized', status:'Failed', data:[] });
+  }
+  const query = 'SELECT Autheticate_Id FROM dbo.tbl_Users WHERE Autheticate_Id = @userToken';
+  const request = new sql.Request();
+  request.input('userToken', sql.NVarChar, userToken);
 
-app.get('/api/usertype', async (req, res) => {
+  await request.query(query)
+    .then((result) => {
+      if (result.recordset.length > 0) {
+        userDatabaseToken = result.recordset[0].Autheticate_Id;
+      }
+    })
+    .catch((err) => {
+      console.error('Error executing SQL query:', err);
+      res.status(500).json({ error: 'Internal Server Error', status:'Failed' });
+    });
+  if (userToken === userDatabaseToken) {
+    next();
+  } else {
+    return res.status(403).json({ message: 'Forbidden', status: 'Failed' , data:[] });
+  }
+};
+
+app.get('/api/usertype', authenticateToken, async (req, res) => {
   const query = 'SELECT * FROM dbo.tbl_User_Type';
   sql.query(query)
     .then(result => {
@@ -44,7 +83,7 @@ app.get('/api/usertype', async (req, res) => {
     });
 });
 
-app.get('/api/users', (req, res) => {
+app.get('/api/users', authenticateToken, (req, res) => {
   const query = 'SELECT * FROM dbo.tbl_Users';
   sql.query(query)
     .then(result => {
@@ -56,7 +95,7 @@ app.get('/api/users', (req, res) => {
     });
 });
 
-app.get('/api/productinfo', async (req, res) => {
+app.get('/api/productinfo', authenticateToken, async (req, res) => {
   const date = req.query.date;
   const apiUrl = `https://api.salesjump.in/api/Order/GetPendingSalesOrders?senderID=SHRI&distributorCode=1000&date=${date}`;
   try {
@@ -73,7 +112,7 @@ app.get('/api/productinfo', async (req, res) => {
   }
 });
 
-app.post('/api/syncsalesorder', (req, res) => {
+app.post('/api/syncsalesorder', authenticateToken, (req, res) => {
   const { data, date } = req.body;
   const formattedDate = date.split('-').reverse().join('-');
   const orders = `SELECT orderDate FROM dbo.tbl_Slaes_Order_SAF WHERE docDate = '${date}'`;
@@ -108,8 +147,7 @@ app.post('/api/syncsalesorder', (req, res) => {
     });
 });
 
-
-app.get('/api/listsalesorder', (req, res) => {
+app.get('/api/listsalesorder', authenticateToken, (req, res) => {
   const { start, end } = req.query;
   const orders = `SELECT DISTINCT
     customerName,
@@ -131,7 +169,7 @@ app.get('/api/listsalesorder', (req, res) => {
     });
 });
 
-app.get('/api/orderinfo', (req, res) => {
+app.get('/api/orderinfo', authenticateToken, (req, res) => {
   const { orderno } = req.query;
   const orders = `SELECT *
   FROM
@@ -148,15 +186,29 @@ app.get('/api/orderinfo', (req, res) => {
     });
 });
 
-
-app.get('/api/branch', async (req, res) => {
+app.get('/api/branch', authenticateToken, async (req, res) => {
   try {
     const requestWithParams = new sql.Request();
     requestWithParams.input('User_Id', sql.Int, 0);
     requestWithParams.input('Company_id', sql.Int, 0);
 
     const result = await requestWithParams.execute('Branch_List');
-    res.json(result.recordset);
+    res.json(result.recordset).status(200);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Error calling the stored procedure');
+  }
+});
+
+app.get('/api/sidebar', authenticateToken, async (req, res) => {
+  const auth = req.header('Authorization'); 
+  console.log(req.header('Authorization'))
+  try {
+    const requestWithParams = new sql.Request();
+    requestWithParams.input('Autheticate_Id', sql.NVarChar, auth);
+
+    const result = await requestWithParams.execute('User_Rights');
+    res.json(result.recordset).status(200);
   } catch (error) {
     console.error(error);
     res.status(500).send('Error calling the stored procedure');
