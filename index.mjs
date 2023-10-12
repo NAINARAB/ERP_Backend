@@ -48,7 +48,7 @@ const authenticateToken = async (req, res, next) => {
   let userDatabaseToken = '';
   const userToken = req.header('Authorization');
   if (!userToken) {
-    return res.status(401).json({ message: 'Unauthorized', status:'Failed', data:[] });
+    return res.status(401).json([]);
   }
   const query = 'SELECT Autheticate_Id FROM dbo.tbl_Users WHERE Autheticate_Id = @userToken';
   const request = new sql.Request();
@@ -67,7 +67,7 @@ const authenticateToken = async (req, res, next) => {
   if (userToken === userDatabaseToken) {
     next();
   } else {
-    return res.status(403).json({ message: 'Forbidden', status: 'Failed' , data:[] });
+    return res.status(403).json([]);
   }
 };
 
@@ -202,13 +202,12 @@ app.get('/api/branch', authenticateToken, async (req, res) => {
 
 app.get('/api/sidebar', authenticateToken, async (req, res) => {
   const auth = req.header('Authorization'); 
-  console.log(req.header('Authorization'))
   try {
     const requestWithParams = new sql.Request();
     requestWithParams.input('Autheticate_Id', sql.NVarChar, auth);
 
     const result = await requestWithParams.execute('User_Rights');
-    res.json(result.recordset).status(200);
+    res.json(result.recordsets).status(200);
   } catch (error) {
     console.error(error);
     res.status(500).send('Error calling the stored procedure');
