@@ -5,7 +5,7 @@ import cors from 'cors';
 import bodyParser from 'body-parser';
 
 const config = {
-  server: "103.235.104.114",
+  server: "103.14.120.9",
   database: "SMT_ERP_DB",
   driver: "SQL Server",
   user: "SMT_ADMIN",
@@ -48,7 +48,7 @@ const authenticateToken = async (req, res, next) => {
   let userDatabaseToken = '';
   const userToken = req.header('Authorization');
   if (!userToken) {
-    return res.status(401).json([]);
+    return res.status(401).json({data:[]});
   }
   const query = 'SELECT Autheticate_Id FROM dbo.tbl_Users WHERE Autheticate_Id = @userToken';
   const request = new sql.Request();
@@ -171,11 +171,7 @@ app.get('/api/listsalesorder', authenticateToken, (req, res) => {
 
 app.get('/api/orderinfo', authenticateToken, (req, res) => {
   const { orderno } = req.query;
-  const orders = `SELECT *
-  FROM
-    dbo.tbl_Slaes_Order_SAF
-  WHERE
-    orderNo = '${orderno}'`;
+  const orders = `SELECT * FROM dbo.tbl_Slaes_Order_SAF WHERE orderNo = '${orderno}'`;
   sql.query(orders)
     .then(result => {
       res.status(200).json({ status: "Success", data: result.recordset });
@@ -212,6 +208,48 @@ app.get('/api/sidebar', authenticateToken, async (req, res) => {
     console.error(error);
     res.status(500).send('Error calling the stored procedure');
   }
+});
+
+app.post('/api/updatesidemenu', authenticateToken, (req, res) => {
+   
+   const {MenuId, MenuType, User, ReadRights, AddRights, EditRights, DeleteRights, PrintRights} = req.body;
+   const deleteRow = `DELETE FROM tbl_User_Rights WHERE User_Id = '${User}'
+                    AND Menu_Id = '${MenuId}'
+                    AND Menu_Type = '${MenuType}'`;
+   sql.query(deleteRow)
+    .then(result => {
+      const insertRow = `INSERT INTO dbo.tbl_User_Rights 
+      (User_Id, Menu_Id, Menu_Type, Read_Rights, Add_Rights, Edit_Rights, Delete_Rights, Print_Rights)
+      VALUES 
+      (${User}, ${MenuId}, ${MenuType}, ${ReadRights}, ${AddRights}, ${EditRights}, ${DeleteRights}, ${PrintRights})`;
+      sql.query(insertRow)
+       .then(insertResult => {
+        res.status(200).json({ message: 'Data updated successfully', status: 'Success' });
+       })
+       .catch(err => {
+        console.error('Error executing SQL query:', err);
+        res.status(500).json({ error: 'Internal Server Error' });
+      });
+    })
+});
+
+app.get('/api/pagerights', (req,res) => {
+  const {menuid, menutype, user} = req.query;
+  const selectPage = `SELECT Read_Rights, Add_Rights, Edit_Rights, Delete_Rights FROM tbl_User_Rights WHERE User_Id = '${user}'
+                      AND Menu_Id = '${menuid}'
+                      AND Menu_Type = '${menutype}'`;
+  sql.query(selectPage)
+    .then(result => {
+      if(result.recordset.length > 0) {
+        res.status(200).json(result.recordset[0]);
+      } else {
+        res.status(200).json({Read_Rights:0,Add_Rights:0,Edit_Rights:0,Delete_Rights:0})
+      }
+    })
+    .catch(err => {
+      console.error('Error executing SQL query:', err);
+      res.status(500).json({ error: 'Internal Server Error' });
+    });
 });
 
 
