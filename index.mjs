@@ -213,9 +213,9 @@ app.get('/api/sidebar', authenticateToken, async (req, res) => {
 app.post('/api/updatesidemenu', authenticateToken, (req, res) => {
    
    const {MenuId, MenuType, User, ReadRights, AddRights, EditRights, DeleteRights, PrintRights} = req.body;
-   const deleteRow = `DELETE FROM tbl_User_Rights WHERE User_Id = '${User}'
-                    AND Menu_Id = '${MenuId}'
-                    AND Menu_Type = '${MenuType}'`;
+   const deleteRow = `DELETE FROM tbl_User_Rights WHERE User_Id = ${User}
+                    AND Menu_Id = ${MenuId}
+                    AND Menu_Type = ${MenuType}`;
    sql.query(deleteRow)
     .then(result => {
       const insertRow = `INSERT INTO dbo.tbl_User_Rights 
@@ -252,6 +252,46 @@ app.get('/api/pagerights', (req,res) => {
     });
 });
 
+app.post('/api/newmenu', authenticateToken, (req, res) => {
+  const { menuType, menuName, menuLink, mainMenuId, subMenuId } = req.body;console.log(req.body)
+  let table = '', column ='', insertquery = '';
+  if (menuType === 1){
+    table = 'tbl_Master_Menu'; 
+    column = 'MenuName';
+    insertquery = `INSERT INTO ${table} (${column}, PageUrl, Active) VALUES ('${menuName}', '${menuLink}', '1')`;
+  } else if (menuType === 2) {
+    table = 'tbl_Sub_Menu'; 
+    column = 'SubMenuName';
+    insertquery = `INSERT INTO ${table} (MenuId, ${column}, PageUrl, Active) VALUES ('${mainMenuId}', '${menuName}', '${menuLink}', '1')`;
+  } else {
+    table = 'tbl_Child_Menu'; 
+    column = 'ChildMenuName';
+    insertquery = `INSERT INTO ${table} (SubMenuId, ${column}, PageUrl, Active) VALUES ('${subMenuId}', '${menuName}', '${menuLink}', '1')`;
+  } console.log(insertquery)
+  sql.query(insertquery)
+    .then(result => {
+      res.status(200).json({ message: 'Data Inserted Successfully', status: 'Success' });
+    })
+    .catch(err => {
+      console.error('Error executing SQL query:', err);
+      res.status(500).json({ error: 'Internal Server Error' });
+    });
+})
+
+app.get('/api/userid', (req, res) => {
+  const authId = req.header('Authorization');
+  const userID = `SELECT UserId FROM tbl_Users WHERE Autheticate_Id = '${authId}'`;
+  sql.query(userID).then(result => {
+    if(result.recordset.length > 0){
+      res.json({User_Id: result.recordset[0].UserId, status: 'available'}).status(200)
+    } else {
+      res.json({User_Id: "", status: 'not available'}).status(200)
+    }
+  }).catch(err => {
+    console.error('Error executing SQL query:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  });
+})
 
 const port = process.env.PORT || 5000;
 app.listen(port, () => {
