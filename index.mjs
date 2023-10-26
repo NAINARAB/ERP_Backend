@@ -60,7 +60,7 @@ const dbconnect = async (req, res, next) => {
         req.db = DYNAMICDB;
         req.dbID = Db;
         req.config = config;
-        next();console.log('dyncmic connect')
+        next();
       } catch (err) {
         console.error('Error connecting to the database:', err);
         res.status(500).json({ connection: "Db connection Failed", data: [] });
@@ -113,7 +113,7 @@ const authenticateToken = async (req, res, next) => {
   if (userToken === userDatabaseToken) {
     next();
   } else {
-    return res.status(403).json([]);
+    return res.status(403).json({data:[]});
   }
 };
 
@@ -353,7 +353,7 @@ app.get('/api/company', authenticateToken, async (req, res) => {
   }
 })
 
-app.get('/api/losdropdown', dbconnect, async (req, res) => {
+app.get('/api/losdropdown', authenticateToken, dbconnect, async (req, res) => {
   try {
     const D_DB = new sql.Request(req.db)
     const Group = await D_DB.execute('ST_Group_List');
@@ -378,12 +378,10 @@ app.get('/api/losdropdown', dbconnect, async (req, res) => {
   }
 })
 
-app.get('/api/stockabstract', dbconnect, async (req, res) => {
+app.get('/api/stockabstract', authenticateToken, dbconnect, async (req, res) => {
   const { Fromdate, Group_ST, Stock_Group, Bag, Brand, Item_Name } = req.query;
   const guid = req.config.Tally_Guid;
   const company_id = req.config.Tally_Company_Id;
-  console.log("received", Fromdate, Group_ST, Stock_Group, Bag, Brand, Item_Name, guid, company_id);
-
   try {
     const DynamicDB = new sql.Request(req.db);
     DynamicDB.input('guid', sql.NVarChar, guid);
