@@ -94,7 +94,7 @@ const authenticateToken = async (req, res, next) => {
   let userDatabaseToken = '';
   const userToken = req.header('Authorization');
   if (!userToken) {
-    return res.status(401).json({data:[]});
+    return res.status(401).json({data:[], message: 'Unauthorized'});
   }
   const query = 'SELECT Autheticate_Id FROM dbo.tbl_Users WHERE Autheticate_Id = @userToken';
   const request = new sql.Request(SMTERP);
@@ -113,7 +113,7 @@ const authenticateToken = async (req, res, next) => {
   if (userToken === userDatabaseToken) {
     next();
   } else {
-    return res.status(403).json({data:[]});
+    return res.status(403).json({data:[], message: 'Forbidden'});
   }
 };
 
