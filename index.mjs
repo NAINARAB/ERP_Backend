@@ -379,7 +379,8 @@ app.get('/api/losdropdown', authenticateToken, dbconnect, async (req, res) => {
 })
 
 app.get('/api/stockabstract', authenticateToken, dbconnect, async (req, res) => {
-  const { Fromdate, Group_ST, Stock_Group, Bag, Brand, Item_Name } = req.query;
+  const { Fromdate, Todate, Group_ST, Stock_Group, Bag, Brand, Item_Name } = req.query;
+  console.log(Fromdate, Todate, Group_ST, Stock_Group, Bag, Brand, Item_Name)
   const guid = req.config.Tally_Guid;
   const company_id = req.config.Tally_Company_Id;
   try {
@@ -387,6 +388,7 @@ app.get('/api/stockabstract', authenticateToken, dbconnect, async (req, res) => 
     DynamicDB.input('guid', sql.NVarChar, guid);
     DynamicDB.input('company_id', sql.VarChar, company_id.toString());
     DynamicDB.input('Fromdate', sql.VarChar, Fromdate);
+    DynamicDB.input('Todate', sql.VarChar, Todate);
     DynamicDB.input('Group_ST', sql.VarChar, Group_ST);
     DynamicDB.input('Stock_Group', sql.VarChar, Stock_Group);
     DynamicDB.input('Bag', sql.VarChar, Bag);
