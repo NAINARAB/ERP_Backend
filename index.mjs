@@ -356,10 +356,10 @@ app.get('/api/company', authenticateToken, async (req, res) => {
 app.get('/api/losdropdown', authenticateToken, dbconnect, async (req, res) => {
   try {
     const D_DB = new sql.Request(req.db)
-    const Group = await D_DB.execute('ST_Group_List');
     const StockGroup = await D_DB.execute('Stock_Group_List');
-    const Bag = await D_DB.execute('Bag_List');
+    const Group = await D_DB.execute('ST_Group_List');
     const Brand = await D_DB.execute('Brand_List');
+    const Bag = await D_DB.execute('Bag_List');
     const INM = await D_DB.execute('Item_Name_List');
     if (Group, StockGroup, Bag, Brand, INM) {
       res.json(
@@ -378,9 +378,57 @@ app.get('/api/losdropdown', authenticateToken, dbconnect, async (req, res) => {
   }
 })
 
+app.get('/api/listlos', authenticateToken, dbconnect, async(req, res) => {
+  try {
+    const Stock_Group = await req.db.query('SELECT DISTINCT Stock_Group FROM tbl_Stock_LOS');
+    const Group = await req.db.query('SELECT DISTINCT Group_ST FROM tbl_Stock_LOS')
+    const Brand = await req.db.query('SELECT DISTINCT Brand FROM tbl_Stock_LOS')
+    const Bag = await req.db.query('SELECT DISTINCT Bag FROM tbl_Stock_LOS')
+    const INM = await req.db.query('SELECT DISTINCT Item_Name_Modified FROM tbl_Stock_LOS')
+
+    const AllRow = await req.db.query('SELECT * FROM tbl_Stock_LOS')
+    const record = AllRow.recordset
+
+    record.map((item,index) => {
+      Stock_Group.recordset.map((item1, index1) => {
+        if(item.Stock_Group === item1.Stock_Group){
+          item.sg_id = index1
+        }
+      })
+      Group.recordset.map((item2, index2) => {
+        if(item.Group_ST === item2.Group_ST){
+          item.g_id = index2
+        }
+      })
+      Brand.recordset.map((item3, index3) => {
+        if(item.Brand === item3.Brand){
+          item.bnd_id = index3
+        }
+      })
+      Bag.recordset.map((item4, index4) => {
+        if(item.Bag === item4.Bag){
+          item.bag_id = index4
+        }
+      })
+      INM.recordset.map((item5, index5) => {
+        if(item.Item_Name_Modified === item5.Item_Name_Modified){
+          item.inm_id = index5
+        }
+      })
+    })
+
+    res.json({data: record, sg: Stock_Group.recordset, g: Group.recordset, bnd: Brand.recordset, bag: Bag.recordset, inm: INM.recordset}).status(200)
+
+  } catch(e){
+    console.log(e);
+    res.status(500).json({ error: 'Internal Server Error' });
+  } finally {
+    req.db.close();
+  }
+})
+
 app.get('/api/stockabstract', authenticateToken, dbconnect, async (req, res) => {
   const { Fromdate, Todate, Group_ST, Stock_Group, Bag, Brand, Item_Name } = req.query;
-  console.log(Fromdate, Todate, Group_ST, Stock_Group, Bag, Brand, Item_Name)
   const guid = req.config.Tally_Guid;
   const company_id = req.config.Tally_Company_Id;
   try {
