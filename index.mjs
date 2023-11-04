@@ -47,13 +47,13 @@ const dbconnect = async (req, res, next) => {
     const fetchDbdata = new sql.Request(SMTERP);
     fetchDbdata.input('Id', sql.Int, Db);
     const result = await fetchDbdata.execute('Company_List_By_Id')
-    if(result.recordset.length === 1) {
+    if (result.recordset.length === 1) {
       config.server = result.recordset[0].IP_Address;
       config.database = result.recordset[0].SQL_DB_Name;
       config.user = result.recordset[0].SQL_User_Name;
       config.password = result.recordset[0].SQL_Pass;
       config.Tally_Company_Id = result.recordset[0].Tally_Company_Id;
-      config.Tally_Guid = result.recordset[0].Tally_Guid; 
+      config.Tally_Guid = result.recordset[0].Tally_Guid;
       const DYNAMICDB = new sql.ConnectionPool(config);
       try {
         await DYNAMICDB.connect();
@@ -94,7 +94,7 @@ const authenticateToken = async (req, res, next) => {
   let userDatabaseToken = '';
   const userToken = req.header('Authorization');
   if (!userToken) {
-    return res.status(401).json({data:[], message: 'Unauthorized'});
+    return res.status(401).json({ data: [], message: 'Unauthorized' });
   }
   const query = 'SELECT Autheticate_Id FROM dbo.tbl_Users WHERE Autheticate_Id = @userToken';
   const request = new sql.Request(SMTERP);
@@ -108,12 +108,12 @@ const authenticateToken = async (req, res, next) => {
     })
     .catch((err) => {
       console.error('Error executing SQL query:', err);
-      res.status(500).json({ error: 'Internal Server Error', status:'Failed' });
+      res.status(500).json({ error: 'Internal Server Error', status: 'Failed' });
     });
   if (userToken === userDatabaseToken) {
     next();
   } else {
-    return res.status(403).json({data:[], message: 'Forbidden'});
+    return res.status(403).json({ data: [], message: 'Forbidden' });
   }
 };
 
@@ -136,9 +136,32 @@ app.get('/api/users', authenticateToken, (req, res) => {
     })
     .catch(err => {
       console.error('Error executing SQL query:', err);
-      res.status(500).json({ error: 'Internal Server Error', data:[] });
+      res.status(500).json({ error: 'Internal Server Error', data: [] });
     })
 });
+
+app.post('/api/user', async (req, res) => {
+  const { name, username ,usertype ,password ,branch ,mode }  = req.body;
+  console.log(name, username ,usertype ,password ,branch ,mode)
+  const newuser = new sql.Request(SMTERP);
+  newuser.input('Mode', sql.TinyInt, mode);
+  newuser.input('Name', sql.VarChar, name);
+  newuser.input('UserName', sql.VarChar, username);
+  newuser.input('UserTypeId', sql.BigInt, usertype);
+  newuser.input('Password', sql.VarChar, password);
+  newuser.input('BranchId', sql.Int, branch);
+
+  try {
+    const result = await newuser.execute('UsersSP');
+    if (result) {
+      res.status(200).json({ data: [], message: "New User Created" });
+    }
+  } catch (e) {
+    console.log(e);
+    res.status(422).json({ data: [], message: "User Creation Failed" });
+  }
+});
+
 
 app.get('/api/productinfo', authenticateToken, async (req, res) => {
   const date = req.query.date;
@@ -203,7 +226,7 @@ app.get('/api/listsalesorder', authenticateToken, (req, res) => {
     dbo.tbl_Slaes_Order_SAF
   WHERE
     docDate >= '${start}' AND docDate <= '${end}'`;
-    SMTERP.query(orders)
+  SMTERP.query(orders)
     .then(result => {
       res.status(200).json({ status: "Success", data: result.recordset });
     })
@@ -241,7 +264,7 @@ app.get('/api/branch', authenticateToken, async (req, res) => {
 })
 
 app.get('/api/sidebar', authenticateToken, async (req, res) => {
-  const auth = req.header('Authorization'); 
+  const auth = req.header('Authorization');
   try {
     const requestWithParams = new sql.Request(SMTERP);
     requestWithParams.input('Autheticate_Id', sql.NVarChar, auth);
@@ -255,8 +278,8 @@ app.get('/api/sidebar', authenticateToken, async (req, res) => {
 });
 
 app.post('/api/updatesidemenu', authenticateToken, (req, res) => {
-   const {MenuId, MenuType, User, ReadRights, AddRights, EditRights, DeleteRights, PrintRights} = req.body;
-   const deleteRow = `DELETE FROM tbl_User_Rights WHERE User_Id = ${User}
+  const { MenuId, MenuType, User, ReadRights, AddRights, EditRights, DeleteRights, PrintRights } = req.body;
+  const deleteRow = `DELETE FROM tbl_User_Rights WHERE User_Id = ${User}
                     AND Menu_Id = ${MenuId}
                     AND Menu_Type = ${MenuType}`;
   SMTERP.query(deleteRow)
@@ -266,27 +289,27 @@ app.post('/api/updatesidemenu', authenticateToken, (req, res) => {
       VALUES 
       (${User}, ${MenuId}, ${MenuType}, ${ReadRights}, ${AddRights}, ${EditRights}, ${DeleteRights}, ${PrintRights})`;
       SMTERP.query(insertRow)
-       .then(insertResult => {
-        res.status(200).json({ message: 'Data updated successfully', status: 'Success' });
-       })
-       .catch(err => {
-        console.error('Error executing SQL query:', err);
-        res.status(500).json({ error: 'Internal Server Error' });
-      })
+        .then(insertResult => {
+          res.status(200).json({ message: 'Data updated successfully', status: 'Success' });
+        })
+        .catch(err => {
+          console.error('Error executing SQL query:', err);
+          res.status(500).json({ error: 'Internal Server Error' });
+        })
     })
 });
 
-app.get('/api/pagerights', (req,res) => {
-  const {menuid, menutype, user} = req.query;
+app.get('/api/pagerights', (req, res) => {
+  const { menuid, menutype, user } = req.query;
   const selectPage = `SELECT Read_Rights, Add_Rights, Edit_Rights, Delete_Rights FROM tbl_User_Rights WHERE User_Id = '${user}'
                       AND Menu_Id = '${menuid}'
                       AND Menu_Type = '${menutype}'`;
   SMTERP.query(selectPage)
     .then(result => {
-      if(result.recordset.length > 0) {
+      if (result.recordset.length > 0) {
         res.status(200).json(result.recordset[0]);
       } else {
-        res.status(200).json({Read_Rights:0,Add_Rights:0,Edit_Rights:0,Delete_Rights:0})
+        res.status(200).json({ Read_Rights: 0, Add_Rights: 0, Edit_Rights: 0, Delete_Rights: 0 })
       }
     })
     .catch(err => {
@@ -297,23 +320,23 @@ app.get('/api/pagerights', (req,res) => {
 
 app.post('/api/newmenu', authenticateToken, (req, res) => {
   const { menuType, menuName, menuLink, mainMenuId, subMenuId } = req.body;
-  let table = '', column ='', insertquery = '';
-  if (menuType === 1){
-    table = 'tbl_Master_Menu'; 
+  let table = '', column = '', insertquery = '';
+  if (menuType === 1) {
+    table = 'tbl_Master_Menu';
     column = 'MenuName';
     insertquery = `INSERT INTO ${table} (${column}, PageUrl, Active) VALUES ('${menuName}', '${menuLink}', '1')`;
   } else if (menuType === 2) {
-    table = 'tbl_Sub_Menu'; 
+    table = 'tbl_Sub_Menu';
     column = 'SubMenuName';
     insertquery = `INSERT INTO ${table} (MenuId, ${column}, PageUrl, Active) VALUES ('${mainMenuId}', '${menuName}', '${menuLink}', '1')`;
   } else {
-    table = 'tbl_Child_Menu'; 
+    table = 'tbl_Child_Menu';
     column = 'ChildMenuName';
     insertquery = `INSERT INTO ${table} (SubMenuId, ${column}, PageUrl, Active) VALUES ('${subMenuId}', '${menuName}', '${menuLink}', '1')`;
   } console.log(insertquery)
   SMTERP.query(insertquery)
     .then(result => {
-      if( result.rowsAffected[0] === 1 ) {
+      if (result.rowsAffected[0] === 1) {
         res.status(200).json({ message: 'Data Inserted Successfully', status: 'Success' });
       } else {
         res.status(200).json({ message: 'Menu Creation Failed', status: 'Failure' });
@@ -329,10 +352,10 @@ app.get('/api/userid', (req, res) => {
   const authId = req.header('Authorization');
   const userID = `SELECT UserId FROM tbl_Users WHERE Autheticate_Id = '${authId}'`;
   SMTERP.query(userID).then(result => {
-    if(result.recordset.length > 0){
-      res.json({User_Id: result.recordset[0].UserId, status: 'available'}).status(200)
+    if (result.recordset.length > 0) {
+      res.json({ User_Id: result.recordset[0].UserId, status: 'available' }).status(200)
     } else {
-      res.json({User_Id: "", status: 'not available'}).status(200)
+      res.json({ User_Id: "", status: 'not available' }).status(200)
     }
   }).catch(err => {
     console.error('Error executing SQL query:', err);
@@ -341,15 +364,15 @@ app.get('/api/userid', (req, res) => {
 })
 
 app.get('/api/company', authenticateToken, async (req, res) => {
-  try{
+  try {
     const comp = new sql.Request(SMTERP);
     const result = await comp.execute('Company_List');
     if (result.recordset.length > 0) {
-      res.json({data: result.recordset, status: 200})
+      res.json({ data: result.recordset, status: 200 })
     }
   } catch (e) {
     console.log(e);
-    res.json({data: [], status: 404})
+    res.json({ data: [], status: 404 })
   }
 })
 
@@ -363,22 +386,24 @@ app.get('/api/losdropdown', authenticateToken, dbconnect, async (req, res) => {
     const INM = await D_DB.execute('Item_Name_List');
     if (Group, StockGroup, Bag, Brand, INM) {
       res.json(
-        { status: 200, 
-          group: Group.recordset, 
-          stock_group: StockGroup.recordset, 
-          bag: Bag.recordset, 
-          brand: Brand.recordset, 
-          inm: INM.recordset}).status(200)
+        {
+          status: 200,
+          group: Group.recordset,
+          stock_group: StockGroup.recordset,
+          bag: Bag.recordset,
+          brand: Brand.recordset,
+          inm: INM.recordset
+        }).status(200)
     }
   } catch (e) {
     console.log(e);
-    res.json({data: [], status: 404}).status(404)
+    res.json({ data: [], status: 404 }).status(404)
   } finally {
     req.db.close();
   }
 })
 
-app.get('/api/listlos', authenticateToken, dbconnect, async(req, res) => {
+app.get('/api/listlos', authenticateToken, dbconnect, async (req, res) => {
   try {
     const Stock_Group = await req.db.query('SELECT DISTINCT Stock_Group FROM tbl_Stock_LOS');
     const Group = await req.db.query('SELECT DISTINCT Group_ST FROM tbl_Stock_LOS')
@@ -389,37 +414,37 @@ app.get('/api/listlos', authenticateToken, dbconnect, async(req, res) => {
     const AllRow = await req.db.query('SELECT * FROM tbl_Stock_LOS')
     const record = AllRow.recordset
 
-    record.map((item,index) => {
+    record.map((item, index) => {
       Stock_Group.recordset.map((item1, index1) => {
-        if(item.Stock_Group === item1.Stock_Group){
+        if (item.Stock_Group === item1.Stock_Group) {
           item.sg_id = index1
         }
       })
       Group.recordset.map((item2, index2) => {
-        if(item.Group_ST === item2.Group_ST){
+        if (item.Group_ST === item2.Group_ST) {
           item.g_id = index2
         }
       })
       Brand.recordset.map((item3, index3) => {
-        if(item.Brand === item3.Brand){
+        if (item.Brand === item3.Brand) {
           item.bnd_id = index3
         }
       })
       Bag.recordset.map((item4, index4) => {
-        if(item.Bag === item4.Bag){
+        if (item.Bag === item4.Bag) {
           item.bag_id = index4
         }
       })
       INM.recordset.map((item5, index5) => {
-        if(item.Item_Name_Modified === item5.Item_Name_Modified){
+        if (item.Item_Name_Modified === item5.Item_Name_Modified) {
           item.inm_id = index5
         }
       })
     })
 
-    res.json({data: record, sg: Stock_Group.recordset, g: Group.recordset, bnd: Brand.recordset, bag: Bag.recordset, inm: INM.recordset}).status(200)
+    res.json({ data: record, sg: Stock_Group.recordset, g: Group.recordset, bnd: Brand.recordset, bag: Bag.recordset, inm: INM.recordset }).status(200)
 
-  } catch(e){
+  } catch (e) {
     console.log(e);
     res.status(500).json({ error: 'Internal Server Error' });
   } finally {
@@ -431,6 +456,7 @@ app.get('/api/stockabstract', authenticateToken, dbconnect, async (req, res) => 
   const { Fromdate, Todate, Group_ST, Stock_Group, Bag, Brand, Item_Name } = req.query;
   const guid = req.config.Tally_Guid;
   const company_id = req.config.Tally_Company_Id;
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   try {
     const DynamicDB = new sql.Request(req.db);
     DynamicDB.input('guid', sql.NVarChar, guid);
@@ -443,10 +469,17 @@ app.get('/api/stockabstract', authenticateToken, dbconnect, async (req, res) => 
     DynamicDB.input('Brand', sql.VarChar, Brand);
     DynamicDB.input('Item_Name', sql.VarChar, Item_Name);
     const StockAbstract = await DynamicDB.execute('Stouck_Abstract_Oinline_Search');
-    res.json({ status: 200, data: StockAbstract.recordset}).status(200)
+    StockAbstract.recordset.map((obj, index) => {
+      let date = new Date(obj.Trans_Date)
+      obj.Trans_Date = date.toISOString().split('T')[0];
+      const monthIndex = date.getMonth();
+      obj.month = monthNames[monthIndex];
+      obj.id = index + 1;
+    })
+    res.json({ status: 200, data: StockAbstract.recordset }).status(200)
   } catch (e) {
     console.log(e);
-    res.json({data: [], status: 404}).status(404)
+    res.json({ data: [], status: 404 }).status(404)
   } finally {
     req.db.close()
   }
