@@ -3,6 +3,7 @@ import express from 'express';
 import sql from 'mssql';
 import cors from 'cors';
 import bodyParser from 'body-parser';
+import crypto from 'crypto';
 
 const app = express();
 app.use(cors());
@@ -30,6 +31,10 @@ SMTERP.connect().then(() => {
 }).catch((err) => {
   console.error('Error connecting to the first database:', err);
 });
+
+function md5Hash(input) {
+  return crypto.createHash('md5').update(input).digest('hex');
+}
 
 const dbconnect = async (req, res, next) => {
   const Db = req.get('Db');
@@ -63,26 +68,27 @@ const dbconnect = async (req, res, next) => {
         next();
       } catch (err) {
         console.error('Error connecting to the database:', err);
-        res.status(500).json({ connection: "Db connection Failed", data: [] });
+        res.status(500).json({ message: "Db connection Failed", status: 'Failure', data: [] });
       }
     }
   } catch (err) {
     console.error('Error connecting to the database:', err);
-    res.status(500).json({ connection: "Db connection Failed", data: [] });
+    res.status(500).json({ message: "Db connection Failed", status: 'Failure', data: [] });
   }
 };
 
 app.get('/api/login', async (req, res) => {
   const { user, pass } = req.query;
+  const md5Password = md5Hash(pass);
   try {
     const requestWithParams = new sql.Request(SMTERP);
     requestWithParams.input('UserName', sql.NVarChar, user);
-    requestWithParams.input('Password', sql.NVarChar, pass);
+    requestWithParams.input('Password', sql.NVarChar, md5Password);
     const result = await requestWithParams.execute('Qry_GetUser');
     if (result.recordset.length === 1) {
-      res.json({ user: result.recordset[0], status: 'Success' }).status(200);
+      res.json({ user: result.recordset[0], status: 'Success', message:'' }).status(200);
     } else {
-      res.json({ user: result.recordset, status: 'Failure' }).status(200);
+      res.json({ user: result.recordset, status: 'Failure', message:'Try Again' }).status(200);
     }
   } catch (error) {
     console.error(error);
@@ -94,7 +100,7 @@ const authenticateToken = async (req, res, next) => {
   let userDatabaseToken = '';
   const userToken = req.header('Authorization');
   if (!userToken) {
-    return res.status(401).json({ data: [], message: 'Unauthorized' });
+    return res.status(401).json({ data: [], message: 'Unauthorized', status: "Failure" });
   }
   const query = 'SELECT Autheticate_Id FROM dbo.tbl_Users WHERE Autheticate_Id = @userToken';
   const request = new sql.Request(SMTERP);
@@ -108,59 +114,125 @@ const authenticateToken = async (req, res, next) => {
     })
     .catch((err) => {
       console.error('Error executing SQL query:', err);
-      res.status(500).json({ error: 'Internal Server Error', status: 'Failed' });
+      res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
     });
   if (userToken === userDatabaseToken) {
     next();
   } else {
-    return res.status(403).json({ data: [], message: 'Forbidden' });
+    return res.status(403).json({ data: [], message: 'Forbidden', status: "Failure" });
   }
 };
 
 app.get('/api/usertype', authenticateToken, async (req, res) => {
   const query = 'SELECT * FROM dbo.tbl_User_Type';
-  SMTERP.query(query)
-    .then(result => {
-      res.status(200).json(result.recordset);
+  SMTERP.query(query).then(result => {
+      res.status(200).json({data: result.recordset, status: "Success", message: ''});
     }).catch(err => {
       console.error('Error executing SQL query:', err);
-      res.status(500).json({ error: 'Internal Server Error' });
+      res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
     })
 });
 
 app.get('/api/users', authenticateToken, (req, res) => {
-  const query = 'SELECT * FROM dbo.tbl_Users';
+  const query = `SELECT u.UserId, u.UserTypeId, u.Name, u.UserName AS Mobile, u.Autheticate_Id AS Token, u.Password, u.BranchId, ut.UserType, b.BranchName
+                  FROM tbl_Users as u
+                  JOIN
+                    tbl_User_Type as ut
+                    ON u.UserTypeId = ut.id
+                  JOIN
+                    tbl_Business_Master as b
+                    ON u.BranchId = b.BranchId
+                  WHERE 
+                    UserId != 0
+                  AND
+                    UDel_Flag = 0`;
+
   SMTERP.query(query)
     .then(result => {
-      res.json(result.recordset);
+      res.json({data: result.recordset, status: "Success", message:''});
     })
     .catch(err => {
       console.error('Error executing SQL query:', err);
-      res.status(500).json({ error: 'Internal Server Error', data: [] });
+      res.status(500).json({ message: 'Internal Server Error', data: [], status: "Failure" });
     })
 });
 
-app.post('/api/user', async (req, res) => {
-  const { name, username ,usertype ,password ,branch ,mode }  = req.body;
-  console.log(name, username ,usertype ,password ,branch ,mode)
-  const newuser = new sql.Request(SMTERP);
-  newuser.input('Mode', sql.TinyInt, mode);
-  newuser.input('Name', sql.VarChar, name);
-  newuser.input('UserName', sql.VarChar, username);
-  newuser.input('UserTypeId', sql.BigInt, usertype);
-  newuser.input('Password', sql.VarChar, password);
-  newuser.input('BranchId', sql.Int, branch);
-
+app.post('/api/users', async (req, res) => {
+  const { name, mobile, usertype, password, branch, userid } = req.body;
+  const md5Password = md5Hash(password);
+  
+  const checkmobile = `SELECT UserName from tbl_Users WHERE UserName = '${mobile}' AND UDel_Flag = 0`;
+  SMTERP.query(checkmobile).then(result => {
+    if (result.recordset.length > 0) {
+      res.status(422).json({ data: [], status: 'Failure', message: "This Mobile Number Already Exists" });
+    }
+  });
   try {
+    const newuser = new sql.Request(SMTERP);
+    newuser.input('Mode', sql.TinyInt, 1);
+    newuser.input('UserId', sql.Int, userid);
+    newuser.input('Name', sql.VarChar, name);
+    newuser.input('UserName', sql.VarChar, mobile);
+    newuser.input('UserTypeId', sql.BigInt, usertype);
+    newuser.input('Password', sql.VarChar, md5Password);
+    newuser.input('BranchId', sql.Int, branch);
     const result = await newuser.execute('UsersSP');
     if (result) {
-      res.status(200).json({ data: [], message: "New User Created" });
+      res.status(200).json({ data: [], status: 'Success', message: "New User Created" });
+    } else {
+      res.status(500).json({ data: [], status: 'Failure', message: "Failed To Save Changes" });
     }
   } catch (e) {
     console.log(e);
-    res.status(422).json({ data: [], message: "User Creation Failed" });
+    res.status(422).json({ data: [], status: 'Failure', message: "User Creation Failed" });
   }
 });
+
+app.put('/api/users', authenticateToken, async (req, res) => {
+  const { name, mobile, usertype, password, branch, userid } = req.body;
+  const md5Password = md5Hash(password);
+  console.log(name, mobile, usertype, password, md5Password, branch, userid)
+  try {
+    const updateuser = `UPDATE tbl_Users
+                        SET Name = '${name}', 
+                            UserName = '${mobile}', 
+                            UserTypeId = '${usertype}', 
+                            Password = '${md5Password}', 
+                            BranchId = '${branch}'
+                        WHERE UserId = ${userid}`;
+                        console.log(updateuser);
+    SMTERP.query(updateuser).then(result => {
+      if (result) {
+        res.status(200).json({ data: [], status: 'Success', message: "Changes Saved" });
+      } else {
+        res.status(422).json({ data: [], status: 'Failure', message: "Failed To Save Changes" });
+      }
+    })
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ data: [], status: 'Failure', message: "Internal Server Error" });
+  }
+})
+
+app.delete('/api/users/:userid', authenticateToken, async (req, res) => {
+  const { userid } = req.params;
+  console.log(req.params);
+  try {
+    const deleteUserQuery = `UPDATE tbl_Users SET UDel_Flag = 1 WHERE UserId = ${userid}`;
+    console.log(deleteUserQuery);
+    SMTERP.query(deleteUserQuery).then((result) => {
+      if (result) {
+        res.status(200).json({ data: [], status: 'Success', message: 'User deleted successfully' });
+      } else {
+        res.status(422).json({ data: [], status: 'Failure', message: 'Failed to delete user' });
+      }
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ data: [], status: 'Failure', message: 'Internal Server Error' });
+  }
+});
+
 
 
 app.get('/api/productinfo', authenticateToken, async (req, res) => {
@@ -170,13 +242,13 @@ app.get('/api/productinfo', authenticateToken, async (req, res) => {
     const response = await fetch(apiUrl);
     if (response.ok) {
       const data = await response.json();
-      res.json(data);
+      res.json({data: data, status: "Success", message: ""}).status(200);
     } else {
       throw new Error(`Request failed with status ${response.status}`);
     }
   } catch (error) {
     console.error('Error:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
   }
 });
 
@@ -203,14 +275,14 @@ app.post('/api/syncsalesorder', authenticateToken, (req, res) => {
           ++count
           return sql.query(insertorders);
         });
-        res.status(200).json({ message: 'Sync completed successfully', rowsadded: count, status: "Success" });
+        res.status(200).json({ message: 'Sync completed successfully', rowsadded: count, status: "Success", data: [] });
       } else {
-        res.status(200).json({ message: 'Already Synced', rowsadded: count, status: "Failure" });
+        res.status(200).json({ message: 'Already Synced', rowsadded: count, status: "Failure", data: [] });
       }
     })
     .catch(err => {
       console.error('Error executing SQL query:', err);
-      res.status(500).json({ error: 'Internal Server Error' });
+      res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
     })
 });
 
@@ -228,11 +300,11 @@ app.get('/api/listsalesorder', authenticateToken, (req, res) => {
     docDate >= '${start}' AND docDate <= '${end}'`;
   SMTERP.query(orders)
     .then(result => {
-      res.status(200).json({ status: "Success", data: result.recordset });
+      res.status(200).json({ status: "Success", data: result.recordset, message: "" });
     })
     .catch(err => {
       console.error('Error executing SQL query:', err);
-      res.status(500).json({ error: 'Internal Server Error' });
+      res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
     })
 });
 
@@ -241,11 +313,11 @@ app.get('/api/orderinfo', authenticateToken, (req, res) => {
   const orders = `SELECT * FROM dbo.tbl_Slaes_Order_SAF WHERE orderNo = '${orderno}'`;
   SMTERP.query(orders)
     .then(result => {
-      res.status(200).json({ status: "Success", data: result.recordset });
+      res.status(200).json({ status: "Success", data: result.recordset, message: "" });
     })
     .catch(err => {
       console.error('Error executing SQL query:', err);
-      res.status(500).json({ error: 'Internal Server Error' });
+      res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
     })
 });
 
@@ -256,10 +328,10 @@ app.get('/api/branch', authenticateToken, async (req, res) => {
     requestWithParams.input('Company_id', sql.Int, 0);
 
     const result = await requestWithParams.execute('Branch_List');
-    res.json(result.recordset).status(200);
+    res.json({data: result.recordset, status: "Success", message: ""}).status(200);
   } catch (error) {
     console.error(error);
-    res.status(500).send('Error calling the stored procedure');
+    res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
   }
 })
 
@@ -268,12 +340,11 @@ app.get('/api/sidebar', authenticateToken, async (req, res) => {
   try {
     const requestWithParams = new sql.Request(SMTERP);
     requestWithParams.input('Autheticate_Id', sql.NVarChar, auth);
-
     const result = await requestWithParams.execute('User_Rights');
-    res.json(result.recordsets).status(200);
+    res.json({data: result.recordsets, status: "Success", message: ""}).status(200);
   } catch (error) {
     console.error(error);
-    res.status(500).send('Error calling the stored procedure');
+    res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
   }
 });
 
@@ -290,32 +361,40 @@ app.post('/api/updatesidemenu', authenticateToken, (req, res) => {
       (${User}, ${MenuId}, ${MenuType}, ${ReadRights}, ${AddRights}, ${EditRights}, ${DeleteRights}, ${PrintRights})`;
       SMTERP.query(insertRow)
         .then(insertResult => {
-          res.status(200).json({ message: 'Data updated successfully', status: 'Success' });
+          res.status(200).json({ message: 'Data updated successfully', status: 'Success', data: [] });
         })
         .catch(err => {
           console.error('Error executing SQL query:', err);
-          res.status(500).json({ error: 'Internal Server Error' });
+          res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
         })
     })
 });
 
-app.get('/api/pagerights', (req, res) => {
+app.get('/api/pagerights', authenticateToken, async (req, res) => {
   const { menuid, menutype, user } = req.query;
-  const selectPage = `SELECT Read_Rights, Add_Rights, Edit_Rights, Delete_Rights FROM tbl_User_Rights WHERE User_Id = '${user}'
-                      AND Menu_Id = '${menuid}'
-                      AND Menu_Type = '${menutype}'`;
-  SMTERP.query(selectPage)
-    .then(result => {
-      if (result.recordset.length > 0) {
-        res.status(200).json(result.recordset[0]);
-      } else {
-        res.status(200).json({ Read_Rights: 0, Add_Rights: 0, Edit_Rights: 0, Delete_Rights: 0 })
-      }
-    })
-    .catch(err => {
-      console.error('Error executing SQL query:', err);
-      res.status(500).json({ error: 'Internal Server Error' });
-    })
+  const auth = req.header('Authorization');
+  try {
+    const pageright = new sql.Request(SMTERP);
+    pageright.input('Autheticate_Id', sql.NVarChar, auth);
+    pageright.input('Menu_Id', sql.Int, menuid);
+    pageright.input('Menu_Type_Id', sql.Int, menutype);
+    const result = await pageright.execute('User_Rights_By_Page_Id');
+    if (result) {
+      res.status(200).json({status: "success", 
+      data:{
+        Read_Rights: result.recordset[0].Read_Rights,
+        Add_Rights: result.recordset[0].Add_Rights,
+        Edit_Rights: result.recordset[0].Edit_Rights,
+        Delete_Rights: result.recordset[0].Delete_Rights
+      }, message: ""})
+    } else {
+      res.status(200).json({data: { Read_Rights: 0, Add_Rights: 0, Edit_Rights: 0, Delete_Rights: 0 }, status: "Success", message: "No Page Rights"})
+    }
+  } 
+  catch (err) {
+    console.error('Error executing SQL query:', err);
+    res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
+  }
 });
 
 app.post('/api/newmenu', authenticateToken, (req, res) => {
@@ -337,14 +416,14 @@ app.post('/api/newmenu', authenticateToken, (req, res) => {
   SMTERP.query(insertquery)
     .then(result => {
       if (result.rowsAffected[0] === 1) {
-        res.status(200).json({ message: 'Data Inserted Successfully', status: 'Success' });
+        res.status(200).json({ message: 'Data Inserted Successfully', status: 'Success', data: [] });
       } else {
-        res.status(200).json({ message: 'Menu Creation Failed', status: 'Failure' });
+        res.status(200).json({ message: 'Menu Creation Failed', status: 'Failure', data: [] });
       }
     })
     .catch(err => {
       console.error('Error executing SQL query:', err);
-      res.status(500).json({ error: 'Internal Server Error' });
+      res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
     })
 })
 
@@ -355,11 +434,11 @@ app.get('/api/userid', (req, res) => {
     if (result.recordset.length > 0) {
       res.json({ User_Id: result.recordset[0].UserId, status: 'available' }).status(200)
     } else {
-      res.json({ User_Id: "", status: 'not available' }).status(200)
+      res.json({ User_Id: "", status: 'not available', message:"" }).status(200)
     }
   }).catch(err => {
     console.error('Error executing SQL query:', err);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
   })
 })
 
@@ -367,12 +446,10 @@ app.get('/api/company', authenticateToken, async (req, res) => {
   try {
     const comp = new sql.Request(SMTERP);
     const result = await comp.execute('Company_List');
-    if (result.recordset.length > 0) {
-      res.json({ data: result.recordset, status: 200 })
-    }
+    res.json({data: result.recordset, status: "Success", message: ""}).status(200);
   } catch (e) {
     console.log(e);
-    res.json({ data: [], status: 404 })
+    res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
   }
 })
 
@@ -392,12 +469,13 @@ app.get('/api/losdropdown', authenticateToken, dbconnect, async (req, res) => {
           stock_group: StockGroup.recordset,
           bag: Bag.recordset,
           brand: Brand.recordset,
-          inm: INM.recordset
+          inm: INM.recordset,
+          message: ""
         }).status(200)
     }
   } catch (e) {
     console.log(e);
-    res.json({ data: [], status: 404 }).status(404)
+    res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
   } finally {
     req.db.close();
   }
@@ -442,11 +520,11 @@ app.get('/api/listlos', authenticateToken, dbconnect, async (req, res) => {
       })
     })
 
-    res.json({ data: record, sg: Stock_Group.recordset, g: Group.recordset, bnd: Brand.recordset, bag: Bag.recordset, inm: INM.recordset }).status(200)
+    res.json({ data: record, sg: Stock_Group.recordset, g: Group.recordset, bnd: Brand.recordset, bag: Bag.recordset, inm: INM.recordset, status: "Success", message:"" }).status(200)
 
   } catch (e) {
     console.log(e);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
   } finally {
     req.db.close();
   }
@@ -476,10 +554,10 @@ app.get('/api/stockabstract', authenticateToken, dbconnect, async (req, res) => 
       obj.month = monthNames[monthIndex];
       obj.id = index + 1;
     })
-    res.json({ status: 200, data: StockAbstract.recordset }).status(200)
+    res.json({ status: "Success", data: StockAbstract.recordset, message:"" }).status(200)
   } catch (e) {
     console.log(e);
-    res.json({ data: [], status: 404 }).status(404)
+    res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
   } finally {
     req.db.close()
   }
