@@ -133,6 +133,8 @@ app.get('/api/usertype', authenticateToken, async (req, res) => {
     })
 });
 
+
+
 app.get('/api/users', authenticateToken, (req, res) => {
   const query = `SELECT u.UserId, u.UserTypeId, u.Name, u.UserName AS Mobile, u.Autheticate_Id AS Token, u.Password, u.BranchId, ut.UserType, b.BranchName
                   FROM tbl_Users as u
@@ -216,10 +218,8 @@ app.put('/api/users', authenticateToken, async (req, res) => {
 
 app.delete('/api/users/:userid', authenticateToken, async (req, res) => {
   const { userid } = req.params;
-  console.log(req.params);
   try {
     const deleteUserQuery = `UPDATE tbl_Users SET UDel_Flag = 1 WHERE UserId = ${userid}`;
-    console.log(deleteUserQuery);
     SMTERP.query(deleteUserQuery).then((result) => {
       if (result) {
         res.status(200).json({ data: [], status: 'Success', message: 'User deleted successfully' });
@@ -235,9 +235,57 @@ app.delete('/api/users/:userid', authenticateToken, async (req, res) => {
 
 
 
-app.get('/api/productinfo', authenticateToken, async (req, res) => {
-  const date = req.query.date;
-  const apiUrl = `https://api.salesjump.in/api/Order/GetPendingSalesOrders?senderID=SHRI&distributorCode=1000&date=${date}`;
+app.get('/api/sf/saleorders', authenticateToken, async (req, res) => {
+  const from = req.query.from ,to = req.query.to; 
+  const apiUrl = `https://api.salesjump.in/api/Order/GetPendingSalesOrders?senderID=shri&distributorCode=1000&Fromdate=${from}&Todate=${to}`;
+  try {
+    const response = await fetch(apiUrl);
+    if (response.ok) {
+      const data = await response.json();
+      res.json({data: data, status: "Success", message: ""}).status(200);
+    } else {
+      throw new Error(`Request failed with status ${response.status}`);
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
+  }
+});
+
+app.get('/api/sf/products', authenticateToken, async (req, res) => {
+  const apiUrl = `https://api.salesjump.in/api/MasterData/getProductDetails?senderID=shri`;
+  try {
+    const response = await fetch(apiUrl);
+    if (response.ok) {
+      const data = await response.json();
+      res.json({data: data, status: "Success", message: ""}).status(200);
+    } else {
+      throw new Error(`Request failed with status ${response.status}`);
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
+  }
+});
+
+app.get('/api/sf/retailers', authenticateToken, async (req, res) => {
+  const apiUrl = `https://api.salesjump.in/api/MasterData/getRetailerDetails?senderID=shri`;
+  try {
+    const response = await fetch(apiUrl);
+    if (response.ok) {
+      const data = await response.json();
+      res.json({data: data, status: "Success", message: ""}).status(200);
+    } else {
+      throw new Error(`Request failed with status ${response.status}`);
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
+  }
+});
+
+app.get('/api/sf/sfdetails', authenticateToken, async (req, res) => {
+  const apiUrl = `https://api.salesjump.in/api/MasterData/getSalesForceDetails?senderID=shri`;
   try {
     const response = await fetch(apiUrl);
     if (response.ok) {
@@ -307,6 +355,8 @@ app.get('/api/listsalesorder', authenticateToken, (req, res) => {
       res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
     })
 });
+
+
 
 app.get('/api/orderinfo', authenticateToken, (req, res) => {
   const { orderno } = req.query;
@@ -412,7 +462,7 @@ app.post('/api/newmenu', authenticateToken, (req, res) => {
     table = 'tbl_Child_Menu';
     column = 'ChildMenuName';
     insertquery = `INSERT INTO ${table} (SubMenuId, ${column}, PageUrl, Active) VALUES ('${subMenuId}', '${menuName}', '${menuLink}', '1')`;
-  } console.log(insertquery)
+  } 
   SMTERP.query(insertquery)
     .then(result => {
       if (result.rowsAffected[0] === 1) {
