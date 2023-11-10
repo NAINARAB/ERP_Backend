@@ -7,7 +7,7 @@ import crypto from 'crypto';
 
 const app = express();
 app.use(cors());
-app.use(bodyParser.json());
+app.use(bodyParser.json({ limit: '50mb' }));
 
 const ERPSMTCONFIG = {
   server: "103.14.120.9",
@@ -86,9 +86,9 @@ app.get('/api/login', async (req, res) => {
     requestWithParams.input('Password', sql.NVarChar, md5Password);
     const result = await requestWithParams.execute('Qry_GetUser');
     if (result.recordset.length === 1) {
-      res.json({ user: result.recordset[0], status: 'Success', message:'' }).status(200);
+      res.json({ user: result.recordset[0], status: 'Success', message: '' }).status(200);
     } else {
-      res.json({ user: result.recordset, status: 'Failure', message:'Try Again' }).status(200);
+      res.json({ user: result.recordset, status: 'Failure', message: 'Try Again' }).status(200);
     }
   } catch (error) {
     console.error(error);
@@ -126,11 +126,11 @@ const authenticateToken = async (req, res, next) => {
 app.get('/api/usertype', authenticateToken, async (req, res) => {
   const query = 'SELECT * FROM dbo.tbl_User_Type';
   SMTERP.query(query).then(result => {
-      res.status(200).json({data: result.recordset, status: "Success", message: ''});
-    }).catch(err => {
-      console.error('Error executing SQL query:', err);
-      res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
-    })
+    res.status(200).json({ data: result.recordset, status: "Success", message: '' });
+  }).catch(err => {
+    console.error('Error executing SQL query:', err);
+    res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
+  })
 });
 
 
@@ -151,7 +151,7 @@ app.get('/api/users', authenticateToken, (req, res) => {
 
   SMTERP.query(query)
     .then(result => {
-      res.json({data: result.recordset, status: "Success", message:''});
+      res.json({ data: result.recordset, status: "Success", message: '' });
     })
     .catch(err => {
       console.error('Error executing SQL query:', err);
@@ -162,7 +162,7 @@ app.get('/api/users', authenticateToken, (req, res) => {
 app.post('/api/users', async (req, res) => {
   const { name, mobile, usertype, password, branch, userid } = req.body;
   const md5Password = md5Hash(password);
-  
+
   const checkmobile = `SELECT UserName from tbl_Users WHERE UserName = '${mobile}' AND UDel_Flag = 0`;
   SMTERP.query(checkmobile).then(result => {
     if (result.recordset.length > 0) {
@@ -202,7 +202,7 @@ app.put('/api/users', authenticateToken, async (req, res) => {
                             Password = '${md5Password}', 
                             BranchId = '${branch}'
                         WHERE UserId = ${userid}`;
-                        console.log(updateuser);
+    console.log(updateuser);
     SMTERP.query(updateuser).then(result => {
       if (result) {
         res.status(200).json({ data: [], status: 'Success', message: "Changes Saved" });
@@ -235,22 +235,6 @@ app.delete('/api/users/:userid', authenticateToken, async (req, res) => {
 
 
 
-app.get('/api/sf/saleorders', authenticateToken, async (req, res) => {
-  const from = req.query.from ,to = req.query.to; 
-  const apiUrl = `https://api.salesjump.in/api/Order/GetPendingSalesOrders?senderID=shri&distributorCode=1000&Fromdate=${from}&Todate=${to}`;
-  try {
-    const response = await fetch(apiUrl);
-    if (response.ok) {
-      const data = await response.json();
-      res.json({data: data, status: "Success", message: ""}).status(200);
-    } else {
-      throw new Error(`Request failed with status ${response.status}`);
-    }
-  } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
-  }
-});
 
 app.get('/api/sf/products', authenticateToken, async (req, res) => {
   const apiUrl = `https://api.salesjump.in/api/MasterData/getProductDetails?senderID=shri`;
@@ -258,7 +242,7 @@ app.get('/api/sf/products', authenticateToken, async (req, res) => {
     const response = await fetch(apiUrl);
     if (response.ok) {
       const data = await response.json();
-      res.json({data: data, status: "Success", message: ""}).status(200);
+      res.json({ data: data, status: "Success", message: "" }).status(200);
     } else {
       throw new Error(`Request failed with status ${response.status}`);
     }
@@ -267,6 +251,45 @@ app.get('/api/sf/products', authenticateToken, async (req, res) => {
     res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
   }
 });
+
+app.post('/api/sf/products', authenticateToken, async (req, res) => {
+  const { data } = req.body;
+  try {
+    const deleteProducts = `DELETE FROM tbl_SF_Products`;
+    await SMTERP.query(deleteProducts);
+
+    for (const obj of data) {
+      const insertProduct = `
+        INSERT INTO tbl_SF_Products
+        (productCode, productName, short_Name, productDescription, conversionFactor, grossweight, netweight, uom, base_UOM, sub_Division_Name, erP_Code, brand, product_Cat_Name) 
+        VALUES 
+        (@productCode, @productName, @short_Name, @productDescription, @conversionFactor, @grossweight, @netweight, @uom, @base_UOM, @sub_Division_Name, @erP_Code, @brand, @product_Cat_Name)
+      `;
+      const request = SMTERP.request();
+      request.input('productCode', obj.productCode);
+      request.input('productName', obj.productName);
+      request.input('short_Name', obj.short_Name);
+      request.input('productDescription', obj.productDescription);
+      request.input('conversionFactor', obj.conversionFactor);
+      request.input('grossweight', obj.grossweight);
+      request.input('netweight', obj.netweight);
+      request.input('uom', obj.uom);
+      request.input('base_UOM', obj.base_UOM);
+      request.input('sub_Division_Name', obj.sub_Division_Name);
+      request.input('erP_Code', obj.erP_Code);
+      request.input('brand', obj.brand);
+      request.input('product_Cat_Name', obj.product_Cat_Name);
+      await request.query(insertProduct);
+    }
+    res.status(200).json({ message: 'Sync Completed', status: 'Success', data: [] });
+  } catch (e) {
+    console.error('Error:', e);
+    res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
+  }
+});
+
+
+
 
 app.get('/api/sf/retailers', authenticateToken, async (req, res) => {
   const apiUrl = `https://api.salesjump.in/api/MasterData/getRetailerDetails?senderID=shri`;
@@ -274,7 +297,7 @@ app.get('/api/sf/retailers', authenticateToken, async (req, res) => {
     const response = await fetch(apiUrl);
     if (response.ok) {
       const data = await response.json();
-      res.json({data: data, status: "Success", message: ""}).status(200);
+      res.json({ data: data, status: "Success", message: "" }).status(200);
     } else {
       throw new Error(`Request failed with status ${response.status}`);
     }
@@ -283,6 +306,58 @@ app.get('/api/sf/retailers', authenticateToken, async (req, res) => {
     res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
   }
 });
+
+app.post('/api/sf/retailers', authenticateToken, async (req, res) => {
+  const { data } = req.body;
+  try {
+    const deleteRetailers = `DELETE FROM tbl_SF_Retailers`;
+    await SMTERP.query(deleteRetailers);
+    for (const obj of data) {
+      const insertRetailer = `
+        INSERT INTO tbl_SF_Retailers
+        (created_Date, retailer_code, retailer_Name, contactPerson, mobile_No, doa, dob, retailer_Channel, retailer_Class, route_Name, territory_Name, areaName, address, city, pinCode, stateName, filedForce, hq, designation, distributorName, gstno, erP_Code, latitude, longitude, profilepic) 
+        VALUES 
+        (@created_Date, @retailer_code, @retailer_Name, @contactPerson, @mobile_No, @doa, @dob, @retailer_Channel, @retailer_Class, @route_Name, @territory_Name, @areaName, @address, @city, @pinCode, @stateName, @filedForce, @hq, @designation, @distributorName, @gstno, @erP_Code, @latitude, @longitude, @profilepic)
+      `;
+      const request = SMTERP.request();
+      request.input('created_Date', obj.created_Date);
+      request.input('retailer_code', obj.retailer_code);
+      request.input('retailer_Name', obj.retailer_Name);
+      request.input('contactPerson', obj.contactPerson);
+      request.input('mobile_No', obj.mobile_No);
+      request.input('doa', obj.doa);
+      request.input('dob', obj.dob);
+      request.input('retailer_Channel', obj.retailer_Channel);
+      request.input('retailer_Class', obj.retailer_Class);
+      request.input('route_Name', obj.route_Name);
+      request.input('territory_Name', obj.territory_Name);
+      request.input('areaName', obj.areaName);
+      request.input('address', obj.address);
+      request.input('city', obj.city);
+      request.input('pinCode', obj.pinCode);
+      request.input('stateName', obj.stateName);
+      request.input('filedForce', obj.filedForce);
+      request.input('hq', obj.hq);
+      request.input('designation', obj.designation);
+      request.input('distributorName', obj.distributorName);
+      request.input('gstno', obj.gstno);
+      request.input('erP_Code', obj.erP_Code);
+      request.input('latitude', obj.latitude);
+      request.input('longitude', obj.longitude);
+      request.input('profilepic', obj.profilepic);
+      await request.query(insertRetailer);
+    }
+    res.status(200).json({ message: 'Sync Completed', status: 'Success', data: [] });
+  } catch (e) {
+    console.error('Error:', e);
+    res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
+  }
+});
+
+
+
+
+
 
 app.get('/api/sf/sfdetails', authenticateToken, async (req, res) => {
   const apiUrl = `https://api.salesjump.in/api/MasterData/getSalesForceDetails?senderID=shri`;
@@ -290,7 +365,7 @@ app.get('/api/sf/sfdetails', authenticateToken, async (req, res) => {
     const response = await fetch(apiUrl);
     if (response.ok) {
       const data = await response.json();
-      res.json({data: data, status: "Success", message: ""}).status(200);
+      res.json({ data: data, status: "Success", message: "" }).status(200);
     } else {
       throw new Error(`Request failed with status ${response.status}`);
     }
@@ -300,50 +375,256 @@ app.get('/api/sf/sfdetails', authenticateToken, async (req, res) => {
   }
 });
 
-app.post('/api/syncsalesorder', authenticateToken, (req, res) => {
-  const { data, date } = req.body;
-  const orders = `SELECT orderDate FROM dbo.tbl_Slaes_Order_SAF WHERE docDate = '${date}'`;
-  SMTERP.query(orders)
-    .then(result => {
-      let count = 0;
-      if (result.recordset.length == 0) {
-        data.map(obj => {
-          const actualQty = obj.actualQty !== "" ? parseFloat(obj.actualQty) : 0.00;
-          const amount = obj.amount !== "" ? parseFloat(obj.amount) : 0.00;
-          const billedQty = obj.billedQty !== "" ? parseFloat(obj.billedQty) : 0.00;
-          const orderValue = obj.orderValue !== "" ? parseFloat(obj.orderValue) : 0.00;
-          const rate = obj.rate !== "" ? parseFloat(obj.rate) : 0.00;
-          const taxAmount = obj.taxAmount !== "" ? parseFloat(obj.taxAmount) : 0.00;
-          const taxPer = obj.taxPer !== "" ? parseFloat(obj.taxPer) : 0.00;
-          const insertorders = `
-          INSERT INTO dbo.tbl_Slaes_Order_SAF 
-          (actualQty, amount, billedQty, billingAddress, customerId, customerName, distributorCode, docDate, docNumber, gstinNo, orderDate, orderNo, orderValue, placeofsupply, productCode, productName, rate, shippingAddress, stateName, taxAmount, taxCode, taxPer, transType, uom)
-          VALUES 
-          (${actualQty}, ${amount}, ${billedQty}, '${obj.billingAddress}', '${obj.customerId}', '${obj.customerName}', '${obj.distributorCode}', '${obj.docDate}', '${obj.docNumber}', '${obj.gstinNo}', '${obj.orderDate}', '${obj.orderNo}', ${orderValue}, '${obj.placeofsupply}', '${obj.productCode}', '${obj.productName}', ${rate}, '${obj.shippingAddress}', '${obj.stateName}', ${taxAmount}, '${obj.taxCode}', ${taxPer}, '${obj.transType}', '${obj.uom}')`;
-          ++count
-          return sql.query(insertorders);
-        });
-        res.status(200).json({ message: 'Sync completed successfully', rowsadded: count, status: "Success", data: [] });
-      } else {
-        res.status(200).json({ message: 'Already Synced', rowsadded: count, status: "Failure", data: [] });
-      }
-    })
-    .catch(err => {
-      console.error('Error executing SQL query:', err);
-      res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
-    })
+app.post('/api/sf/sfdetails', authenticateToken, async (req, res) => {
+  const { data } = req.body;
+  try {
+    const deleteSFDetails = `DELETE FROM tbl_SF_SFDetails`;
+    await SMTERP.query(deleteSFDetails);
+    for (const obj of data) {
+      const insertSFDetails = `
+        INSERT INTO tbl_SF_SFDetails
+        (employee_Id, employee_Name, designation, sf_HQ, stateName, mobileNumber, manager_Name, territory, dob, total_Beats, doj, email, address, status, appversion) 
+        VALUES 
+        (@employee_Id, @employee_Name, @designation, @sf_HQ, @stateName, @mobileNumber, @manager_Name, @territory, @dob, @total_Beats, @doj, @email, @address, @status, @appversion)
+      `;
+      const request = SMTERP.request();
+      request.input('employee_Id', obj.employee_Id);
+      request.input('employee_Name', obj.employee_Name);
+      request.input('designation', obj.designation);
+      request.input('sf_HQ', obj.sf_HQ);
+      request.input('stateName', obj.stateName);
+      request.input('mobileNumber', obj.mobileNumber);
+      request.input('manager_Name', obj.manager_Name);
+      request.input('territory', obj.territory);
+      request.input('dob', obj.dob);
+      request.input('total_Beats', obj.total_Beats);
+      request.input('doj', obj.doj);
+      request.input('email', obj.email);
+      request.input('address', obj.address);
+      request.input('status', obj.status);
+      request.input('appversion', obj.appversion);
+      await request.query(insertSFDetails);
+    }
+    res.status(200).json({ message: 'Sync Completed', status: 'Success', data: [] });
+  } catch (e) {
+    console.error('Error:', e);
+    res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
+  }
 });
+
+
+
+
+app.get('/api/sf/routes', authenticateToken, async (req, res) => {
+  const apiUrl = `https://api.salesjump.in/api/MasterData/getRouteDetails?senderID=shri`;
+  try {
+    const response = await fetch(apiUrl);
+    if (response.ok) {
+      const data = await response.json();
+      res.json({ data: data, status: "Success", message: "" }).status(200);
+    } else {
+      throw new Error(`Request failed with status ${response.status}`);
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
+  }
+});
+
+app.post('/api/sf/routes', authenticateToken, async (req, res) => {
+  const { data } = req.body;
+  try {
+    const deleteRoutes = `DELETE FROM tbl_SF_Routes`;
+    await SMTERP.query(deleteRoutes);
+    for (const obj of data) {
+      const insertRoute = `
+        INSERT INTO tbl_SF_Routes
+        (territory_Code, route_Code, route_Name, target, territory_name, create_Date, stateName, sF_Name, emp_Id, distributor_Name) 
+        VALUES 
+        (@territory_Code, @route_Code, @route_Name, @target, @territory_name, @create_Date, @stateName, @sF_Name, @emp_Id, @distributor_Name)
+      `;
+      const request = SMTERP.request();
+      request.input('territory_Code', obj.territory_Code);
+      request.input('route_Code', obj.route_Code);
+      request.input('route_Name', obj.route_Name);
+      request.input('target', obj.target);
+      request.input('territory_name', obj.territory_name);
+      request.input('create_Date', obj.create_Date);
+      request.input('stateName', obj.stateName);
+      request.input('sF_Name', obj.sF_Name);
+      request.input('emp_Id', obj.emp_Id);
+      request.input('distributor_Name', obj.distributor_Name);
+      await request.query(insertRoute);
+    }
+    res.status(200).json({ message: 'Sync Completed', status: 'Success', data: [] });
+  } catch (e) {
+    console.error('Error:', e);
+    res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
+  }
+});
+
+
+
+
+app.get('/api/sf/distributors', authenticateToken, async (req, res) => {
+  const apiUrl = `https://api.salesjump.in/api/MasterData/getDistributorDetails?senderID=shri`;
+  try {
+    const response = await fetch(apiUrl);
+    if (response.ok) {
+      const data = await response.json();
+      res.json({ data: data, status: "Success", message: "" }).status(200);
+    } else {
+      throw new Error(`Request failed with status ${response.status}`);
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
+  }
+});
+
+app.post('/api/sf/distributors', authenticateToken, async (req, res) => {
+  const { data } = req.body;
+  try {
+    const deleteDistributors = `DELETE FROM tbl_SF_Distributors`;
+    await SMTERP.query(deleteDistributors);
+    for (const obj of data) {
+      const insertDistributor = `
+        INSERT INTO tbl_SF_Distributors
+        (distributor_Code, erP_Code, distributor_Name, contactPerson, address, mobile, fieldForce_Name, territory, dist_Name, taluk_Name, stateName, categoryName, type, emailID, gstn, vendor_Code, username) 
+        VALUES 
+        (@distributor_Code, @erP_Code, @distributor_Name, @contactPerson, @address, @mobile, @fieldForce_Name, @territory, @dist_Name, @taluk_Name, @stateName, @categoryName, @type, @emailID, @gstn, @vendor_Code, @username)
+      `;
+      const request = SMTERP.request();
+      request.input('distributor_Code', obj.distributor_Code);
+      request.input('erP_Code', obj.erP_Code);
+      request.input('distributor_Name', obj.distributor_Name);
+      request.input('contactPerson', obj.contactPerson);
+      request.input('address', obj.address);
+      request.input('mobile', obj.mobile);
+      request.input('fieldForce_Name', obj.fieldForce_Name);
+      request.input('territory', obj.territory);
+      request.input('dist_Name', obj.dist_Name);
+      request.input('taluk_Name', obj.taluk_Name);
+      request.input('stateName', obj.stateName);
+      request.input('categoryName', obj.categoryName);
+      request.input('type', obj.type);
+      request.input('emailID', obj.emailID);
+      request.input('gstn', obj.gstn);
+      request.input('vendor_Code', obj.vendor_Code);
+      request.input('username', obj.username);
+      await request.query(insertDistributor);
+    }
+    res.status(200).json({ message: 'Sync Completed', status: 'Success', data: [] });
+  } catch (e) {
+    console.error('Error:', e);
+    res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
+  }
+});
+
+
+
+
+app.get('/api/sf/saleorders', authenticateToken, async (req, res) => {
+  const from = req.query.from, to = req.query.to;
+  const apiUrl = `https://api.salesjump.in/api/Order/GetPendingSalesOrders?senderID=shri&distributorCode=1000&Fromdate=${from}&Todate=${to}`;
+  try {
+    const response = await fetch(apiUrl);
+    if (response.ok) {
+      const data = await response.json();
+      res.json({ data: data, status: "Success", message: "" }).status(200);
+    } else {
+      throw new Error(`Request failed with status ${response.status}`);
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
+  }
+});
+
+app.post('/api/syncsalesorder', authenticateToken, async (req, res) => {
+  const { data } = req.body;
+  try {
+    for (const obj of data) {
+      const deleteOrders = `DELETE FROM tbl_Slaes_Order_SAF WHERE orderNo = @orderNo`;
+      const deleteOrderedProduct = `DELETE FROM tbl_Sales_Order_Product WHERE orderNo = @orderNo`;
+      await SMTERP.request()
+        .input('orderNo', obj.orderNo)
+        .query(deleteOrders);
+      await SMTERP.request()
+        .input('orderNo', obj.orderNo)
+        .query(deleteOrderedProduct);
+    }
+    for (const obj of data) {
+      const insertOrder = `
+        INSERT INTO tbl_Slaes_Order_SAF 
+        (billingAddress, customerId, customerName, distributorCode, docDate, docNumber, gstinNo, orderDate, orderNo, orderValue, placeofsupply, shippingAddress, stateName, transType, orderTakenBy)
+        VALUES 
+        (@billingAddress, @customerId, @customerName, @distributorCode, @docDate, @docNumber, @gstinNo, @orderDate, @orderNo, @orderValue, @placeofsupply, @shippingAddress, @stateName, @transType, @orderTakenBy)
+      `;
+      const insertOrderResult = await SMTERP.request()
+        .input('billingAddress', obj.billingAddress)
+        .input('customerId', obj.customerId)
+        .input('customerName', obj.customerName)
+        .input('distributorCode', obj.distributorCode)
+        .input('docDate', obj.docDate)
+        .input('docNumber', obj.docNumber)
+        .input('gstinNo', obj.gstinNo)
+        .input('orderDate', obj.orderDate)
+        .input('orderNo', obj.orderNo)
+        .input('orderValue', obj.orderValue)
+        .input('placeofsupply', obj.placeofsupply)
+        .input('shippingAddress', obj.shippingAddress)
+        .input('stateName', obj.stateName)
+        .input('transType', obj.transType)
+        .input('orderTakenBy', obj.orderTakenBy)
+        .query(insertOrder);
+      if (insertOrderResult) {
+        for (const transobj of obj.transDetails) {
+          const insertProducts = `
+            INSERT INTO tbl_Sales_Order_Product
+            (actualQty, amount, billedQty, closeingStock, productCode, productName, rate, taxAmount, taxCode, taxPer, uom, orderNo)
+            VALUES
+            (@actualQty, @amount, @billedQty, @closeingStock, @productCode, @productName, @rate, @taxAmount, @taxCode, @taxPer, @uom, @orderNo)
+          `;
+          await SMTERP.request()
+            .input('actualQty', transobj.actualQty)
+            .input('amount', transobj.amount)
+            .input('billedQty', transobj.billedQty)
+            .input('closeingStock', transobj.closeingStock)
+            .input('productCode', transobj.productCode)
+            .input('productName', transobj.productName)
+            .input('rate', transobj.rate)
+            .input('taxAmount', transobj.taxAmount)
+            .input('taxCode', transobj.taxCode)
+            .input('taxPer', transobj.taxPer)
+            .input('uom', transobj.uom)
+            .input('orderNo', obj.orderNo)
+            .query(insertProducts);
+        }
+      }
+    }
+    res.status(200).json({ message: 'Sync successful', status: 'Success', data: [] });
+  } catch (e) {
+    console.error('Error executing SQL query:', e);
+    res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
+  }
+});
+
+
+
+
+
 
 app.get('/api/listsalesorder', authenticateToken, (req, res) => {
   const { start, end } = req.query;
-  const orders = `SELECT DISTINCT
+  const orders = `SELECT 
     customerName,
     docDate,
     orderNo,
     orderValue,
     shippingAddress
   FROM
-    dbo.tbl_Slaes_Order_SAF
+    tbl_Slaes_Order_SAF
   WHERE
     docDate >= '${start}' AND docDate <= '${end}'`;
   SMTERP.query(orders)
@@ -356,11 +637,9 @@ app.get('/api/listsalesorder', authenticateToken, (req, res) => {
     })
 });
 
-
-
 app.get('/api/orderinfo', authenticateToken, (req, res) => {
   const { orderno } = req.query;
-  const orders = `SELECT * FROM dbo.tbl_Slaes_Order_SAF WHERE orderNo = '${orderno}'`;
+  const orders = `SELECT * FROM tbl_Sales_Order_Product WHERE orderNo = '${orderno}'`;
   SMTERP.query(orders)
     .then(result => {
       res.status(200).json({ status: "Success", data: result.recordset, message: "" });
@@ -371,6 +650,8 @@ app.get('/api/orderinfo', authenticateToken, (req, res) => {
     })
 });
 
+
+
 app.get('/api/branch', authenticateToken, async (req, res) => {
   try {
     const requestWithParams = new sql.Request(SMTERP);
@@ -378,7 +659,7 @@ app.get('/api/branch', authenticateToken, async (req, res) => {
     requestWithParams.input('Company_id', sql.Int, 0);
 
     const result = await requestWithParams.execute('Branch_List');
-    res.json({data: result.recordset, status: "Success", message: ""}).status(200);
+    res.json({ data: result.recordset, status: "Success", message: "" }).status(200);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
@@ -391,7 +672,7 @@ app.get('/api/sidebar', authenticateToken, async (req, res) => {
     const requestWithParams = new sql.Request(SMTERP);
     requestWithParams.input('Autheticate_Id', sql.NVarChar, auth);
     const result = await requestWithParams.execute('User_Rights');
-    res.json({data: result.recordsets, status: "Success", message: ""}).status(200);
+    res.json({ data: result.recordsets, status: "Success", message: "" }).status(200);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
@@ -430,17 +711,19 @@ app.get('/api/pagerights', authenticateToken, async (req, res) => {
     pageright.input('Menu_Type_Id', sql.Int, menutype);
     const result = await pageright.execute('User_Rights_By_Page_Id');
     if (result) {
-      res.status(200).json({status: "success", 
-      data:{
-        Read_Rights: result.recordset[0].Read_Rights,
-        Add_Rights: result.recordset[0].Add_Rights,
-        Edit_Rights: result.recordset[0].Edit_Rights,
-        Delete_Rights: result.recordset[0].Delete_Rights
-      }, message: ""})
+      res.status(200).json({
+        status: "success",
+        data: {
+          Read_Rights: result.recordset[0].Read_Rights,
+          Add_Rights: result.recordset[0].Add_Rights,
+          Edit_Rights: result.recordset[0].Edit_Rights,
+          Delete_Rights: result.recordset[0].Delete_Rights
+        }, message: ""
+      })
     } else {
-      res.status(200).json({data: { Read_Rights: 0, Add_Rights: 0, Edit_Rights: 0, Delete_Rights: 0 }, status: "Success", message: "No Page Rights"})
+      res.status(200).json({ data: { Read_Rights: 0, Add_Rights: 0, Edit_Rights: 0, Delete_Rights: 0 }, status: "Success", message: "No Page Rights" })
     }
-  } 
+  }
   catch (err) {
     console.error('Error executing SQL query:', err);
     res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
@@ -462,7 +745,7 @@ app.post('/api/newmenu', authenticateToken, (req, res) => {
     table = 'tbl_Child_Menu';
     column = 'ChildMenuName';
     insertquery = `INSERT INTO ${table} (SubMenuId, ${column}, PageUrl, Active) VALUES ('${subMenuId}', '${menuName}', '${menuLink}', '1')`;
-  } 
+  }
   SMTERP.query(insertquery)
     .then(result => {
       if (result.rowsAffected[0] === 1) {
@@ -484,7 +767,7 @@ app.get('/api/userid', (req, res) => {
     if (result.recordset.length > 0) {
       res.json({ User_Id: result.recordset[0].UserId, status: 'available' }).status(200)
     } else {
-      res.json({ User_Id: "", status: 'not available', message:"" }).status(200)
+      res.json({ User_Id: "", status: 'not available', message: "" }).status(200)
     }
   }).catch(err => {
     console.error('Error executing SQL query:', err);
@@ -496,7 +779,7 @@ app.get('/api/company', authenticateToken, async (req, res) => {
   try {
     const comp = new sql.Request(SMTERP);
     const result = await comp.execute('Company_List');
-    res.json({data: result.recordset, status: "Success", message: ""}).status(200);
+    res.json({ data: result.recordset, status: "Success", message: "" }).status(200);
   } catch (e) {
     console.log(e);
     res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
@@ -570,7 +853,7 @@ app.get('/api/listlos', authenticateToken, dbconnect, async (req, res) => {
       })
     })
 
-    res.json({ data: record, sg: Stock_Group.recordset, g: Group.recordset, bnd: Brand.recordset, bag: Bag.recordset, inm: INM.recordset, status: "Success", message:"" }).status(200)
+    res.json({ data: [record, Stock_Group.recordset, Group.recordset, Brand.recordset, Bag.recordset, INM.recordset], status: "Success", message: "" }).status(200)
 
   } catch (e) {
     console.log(e);
@@ -604,7 +887,7 @@ app.get('/api/stockabstract', authenticateToken, dbconnect, async (req, res) => 
       obj.month = monthNames[monthIndex];
       obj.id = index + 1;
     })
-    res.json({ status: "Success", data: StockAbstract.recordset, message:"" }).status(200)
+    res.json({ status: "Success", data: StockAbstract.recordset, message: "" }).status(200)
   } catch (e) {
     console.log(e);
     res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
