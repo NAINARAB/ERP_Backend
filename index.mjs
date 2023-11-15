@@ -159,14 +159,14 @@ app.get('/api/users', authenticateToken, (req, res) => {
     })
 });
 
-app.post('/api/users', async (req, res) => {
+app.post('/api/users', authenticateToken, async (req, res) => {
   const { name, mobile, usertype, password, branch, userid } = req.body;
   const md5Password = md5Hash(password);
 
   const checkmobile = `SELECT UserName from tbl_Users WHERE UserName = '${mobile}' AND UDel_Flag = 0`;
   SMTERP.query(checkmobile).then(result => {
     if (result.recordset.length > 0) {
-      res.status(422).json({ data: [], status: 'Failure', message: "This Mobile Number Already Exists" });
+      res.status(422).json({ data: [], status: 'Failure', message: "Mobile Number Already Exists" });
     }
   });
   try {
@@ -182,7 +182,7 @@ app.post('/api/users', async (req, res) => {
     if (result) {
       res.status(200).json({ data: [], status: 'Success', message: "New User Created" });
     } else {
-      res.status(500).json({ data: [], status: 'Failure', message: "Failed To Save Changes" });
+      res.status(500).json({ data: [], status: 'Failure', message: "User Creation Failed" });
     }
   } catch (e) {
     console.log(e);
@@ -193,7 +193,6 @@ app.post('/api/users', async (req, res) => {
 app.put('/api/users', authenticateToken, async (req, res) => {
   const { name, mobile, usertype, password, branch, userid } = req.body;
   const md5Password = md5Hash(password);
-  console.log(name, mobile, usertype, password, md5Password, branch, userid)
   try {
     const updateuser = `UPDATE tbl_Users
                         SET Name = '${name}', 
@@ -671,6 +670,19 @@ app.get('/api/sidebar', authenticateToken, async (req, res) => {
   try {
     const requestWithParams = new sql.Request(SMTERP);
     requestWithParams.input('Autheticate_Id', sql.NVarChar, auth);
+    const result = await requestWithParams.execute('User_Rights_Side');
+    res.json({ data: result.recordsets, status: "Success", message: "" }).status(200);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
+  }
+});
+
+app.get('/api/side', authenticateToken, async (req, res) => {
+  const auth = req.header('Authorization');
+  try {
+    const requestWithParams = new sql.Request(SMTERP);
+    requestWithParams.input('Autheticate_Id', sql.NVarChar, auth);
     const result = await requestWithParams.execute('User_Rights');
     res.json({ data: result.recordsets, status: "Success", message: "" }).status(200);
   } catch (error) {
@@ -701,8 +713,44 @@ app.post('/api/updatesidemenu', authenticateToken, (req, res) => {
     })
 });
 
+app.get('/api/usertypeauth', authenticateToken, async (req, res) => {
+  const {usertype} = req.query;
+  console.log(req.query)
+  try {
+    const requestWithParams = new sql.Request(SMTERP);
+    requestWithParams.input('UserTypeId', sql.Int, usertype);
+    const result = await requestWithParams.execute('User_Rights_By_User_Type');
+    res.json({ data: result.recordsets, status: "Success", message: "" }).status(200);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
+  }
+});
+
+app.post('/api/usertypeauth', authenticateToken, (req, res) => {
+  const { MenuId, MenuType, UserType, ReadRights, AddRights, EditRights, DeleteRights, PrintRights } = req.body;
+  const deleteRow = `DELETE FROM tbl_User_Type_Rights WHERE User_Type_Id = ${UserType}
+                    AND Menu_Id = ${MenuId}
+                    AND Menu_Type = ${MenuType}`;
+  SMTERP.query(deleteRow)
+    .then(result => {
+      const insertRow = `INSERT INTO tbl_User_Type_Rights 
+      (User_Type_Id, Menu_Id, Menu_Type, Read_Rights, Add_Rights, Edit_Rights, Delete_Rights, Print_Rights)
+      VALUES 
+      (${UserType}, ${MenuId}, ${MenuType}, ${ReadRights}, ${AddRights}, ${EditRights}, ${DeleteRights}, ${PrintRights})`;
+      SMTERP.query(insertRow)
+        .then(insertResult => {
+          res.status(200).json({ message: 'Data updated successfully', status: 'Success', data: [] });
+        })
+        .catch(err => {
+          console.error('Error executing SQL query:', err);
+          res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
+        })
+    })
+});
+
 app.get('/api/pagerights', authenticateToken, async (req, res) => {
-  const { menuid, menutype, user } = req.query;
+  const { menuid, menutype } = req.query;
   const auth = req.header('Authorization');
   try {
     const pageright = new sql.Request(SMTERP);
@@ -710,7 +758,36 @@ app.get('/api/pagerights', authenticateToken, async (req, res) => {
     pageright.input('Menu_Id', sql.Int, menuid);
     pageright.input('Menu_Type_Id', sql.Int, menutype);
     const result = await pageright.execute('User_Rights_By_Page_Id');
-    if (result) {
+    if (result.recordset.length !== 0) {
+      res.status(200).json({
+        status: "success",
+        data: {
+          Read_Rights: result.recordset[0].Read_Rights,
+          Add_Rights: result.recordset[0].Add_Rights,
+          Edit_Rights: result.recordset[0].Edit_Rights,
+          Delete_Rights: result.recordset[0].Delete_Rights
+        }, message: ""
+      })
+    } else {
+      res.status(200).json({ data: { Read_Rights: 0, Add_Rights: 0, Edit_Rights: 0, Delete_Rights: 0 }, status: "Success", message: "No Page Rights" })
+    }
+  }
+  catch (err) {
+    console.error('Error executing SQL query:', err);
+    res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
+  }
+});
+
+app.get('/api/pagerights', authenticateToken, async (req, res) => {
+  const { menuid, menutype, usertype } = req.query;
+  const auth = req.header('Authorization');
+  try {
+    const pageright = new sql.Request(SMTERP);
+    pageright.input('User_Type', sql.NVarChar, usertype);
+    pageright.input('Menu_Id', sql.Int, menuid);
+    pageright.input('Menu_Type_Id', sql.Int, menutype);
+    const result = await pageright.execute('User_Rights_By_Page_Id');
+    if (result.recordset.length !== 0) {
       res.status(200).json({
         status: "success",
         data: {
