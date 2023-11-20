@@ -596,6 +596,31 @@ app.get('/api/sf/saleorders', authenticateToken, async (req, res) => {
   }
 });
 
+app.get('/api/SaleOrder', authenticateToken, async (req, res) => {
+  const { from, to } = req.query;
+
+  try {
+    const getSaleOrder = `
+      SELECT p.*, o.*
+      FROM tbl_Sales_Order_Product as p
+      JOIN tbl_Slaes_Order_SAF as o
+      ON p.orderNo = o.orderNo
+      WHERE docDate >= '${from} 00:00:00.000' AND docDate <= '${to} 00:00:00.000'
+    `;
+    const result = await SMTERP.query(getSaleOrder);
+    if (result) {
+      res.json({ data: result.recordset, status: 'Success', message: '' });
+    } else {
+      res.status(422).json({ data: [], status: 'Failure', message: 'Error' });
+    }
+  } catch (e) {
+    console.error('Error:', e);
+    res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
+  }
+});
+
+
+
 app.post('/api/syncsalesorder', authenticateToken, async (req, res) => {
   const { data } = req.body;
   try {
