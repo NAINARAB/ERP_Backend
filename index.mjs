@@ -84,7 +84,7 @@ app.get('/api/login', async (req, res) => {
   try {
     const loginSP = new sql.Request(SMTERP);
     loginSP.input('UserName', sql.NVarChar, user);
-    loginSP.input('Password', sql.NVarChar, pass); 
+    loginSP.input('Password', sql.NVarChar, md5Password);
     const result = await loginSP.execute('Qry_GetUser');
     if (result.recordset.length === 1) {
       const userInfo = result.recordset[0];
@@ -172,23 +172,23 @@ app.get('/api/users', authenticateToken, (req, res) => {
 });
 
 app.post('/api/users', authenticateToken, async (req, res) => {
-  const { name, mobile, usertype, password, branch, userid } = req.body;
+  const { name, mobile, usertype, password, branch } = req.body;
   const md5Password = md5Hash(password);
-
-  const checkmobile = `SELECT UserName from tbl_Users WHERE UserName = '${mobile}' AND UDel_Flag = 0`;
-  SMTERP.query(checkmobile).then(result => {
-    if (result.recordset.length > 0) {
-      res.status(422).json({ data: [], status: 'Failure', message: "Mobile Number Already Exists" });
-    }
-  });
   try {
+    const checkmobile = `SELECT UserName from tbl_Users WHERE UserName = '${mobile}' AND UDel_Flag = 0`;
+    const checkResult = await SMTERP.query(checkmobile);
+
+    if (checkResult.recordset.length > 0) {
+      res.status(422).json({ data: [], status: 'Failure', message: "Mobile Number Already Exists" });
+      return;
+    }
     const newuser = new sql.Request(SMTERP);
     newuser.input('Mode', sql.TinyInt, 1);
     newuser.input('UserId', sql.Int, 0);
     newuser.input('Name', sql.VarChar, name);
     newuser.input('UserName', sql.VarChar, mobile);
     newuser.input('UserTypeId', sql.BigInt, usertype);
-    newuser.input('Password', sql.VarChar, password);
+    newuser.input('Password', sql.VarChar, md5Password);
     newuser.input('BranchId', sql.Int, branch);
     const result = await newuser.execute('UsersSP');
     if (result) {
@@ -197,28 +197,29 @@ app.post('/api/users', authenticateToken, async (req, res) => {
       res.status(500).json({ data: [], status: 'Failure', message: "User Creation Failed" });
     }
   } catch (e) {
-    console.log(e);
+    console.error(e);
     res.status(422).json({ data: [], status: 'Failure', message: "User Creation Failed" });
   }
 });
 
 app.put('/api/users', authenticateToken, async (req, res) => {
   const { name, mobile, usertype, password, branch, userid } = req.body;
-  const md5Password = md5Hash(password);
-  const checkmobile = `SELECT UserName from tbl_Users WHERE UserName = '${mobile}' AND UDel_Flag = 0 AND UserId != '${userid}'`;
-  SMTERP.query(checkmobile).then(result => {
-    if (result.recordset.length > 0) {
-      res.status(422).json({ data: [], status: 'Failure', message: "Mobile Number Already Exists" });
-    }
-  });
+  const isMd5Hash = /^[a-fA-F0-9]{32}$/.test(password);
+  const passwordToUse = isMd5Hash ? password : md5Hash(password);
   try {
+    const checkmobile = `SELECT UserName from tbl_Users WHERE UserName = '${mobile}' AND UDel_Flag = 0 AND UserId != '${userid}'`;
+    const checkResult = await SMTERP.query(checkmobile);
+    if (checkResult.recordset.length > 0) {
+      res.status(422).json({ data: [], status: 'Failure', message: "Mobile Number Already Exists" });
+      return;
+    }
     const newuser = new sql.Request(SMTERP);
     newuser.input('Mode', sql.TinyInt, 2);
     newuser.input('UserId', sql.Int, userid);
     newuser.input('Name', sql.VarChar, name);
     newuser.input('UserName', sql.VarChar, mobile);
     newuser.input('UserTypeId', sql.BigInt, usertype);
-    newuser.input('Password', sql.VarChar, password);
+    newuser.input('Password', sql.VarChar, passwordToUse); 
     newuser.input('BranchId', sql.Int, branch);
     const result = await newuser.execute('UsersSP');
     if (result) {
@@ -227,30 +228,10 @@ app.put('/api/users', authenticateToken, async (req, res) => {
       res.status(500).json({ data: [], status: 'Failure', message: "Failed to Save changes" });
     }
   } catch (e) {
-    console.log(e);
+    console.error(e);
     res.status(422).json({ data: [], status: 'Failure', message: "User Creation Failed" });
   }
-  // try {
-  //   const updateuser = `UPDATE tbl_Users
-  //                       SET Name = '${name}', 
-  //                           UserName = '${mobile}', 
-  //                           UserTypeId = '${usertype}', 
-  //                           Password = '${password}', 
-  //                           BranchId = '${branch}'
-  //                       WHERE UserId = ${userid}`;
-  //   console.log(updateuser);
-  //   SMTERP.query(updateuser).then(result => {
-  //     if (result) {
-  //       res.status(200).json({ data: [], status: 'Success', message: "Changes Saved" });
-  //     } else {
-  //       res.status(422).json({ data: [], status: 'Failure', message: "Failed To Save Changes" });
-  //     }
-  //   })
-  // } catch (e) {
-  //   console.error(e);
-  //   res.status(500).json({ data: [], status: 'Failure', message: "Internal Server Error" });
-  // }
-})
+});
 
 app.delete('/api/users/:userid', authenticateToken, async (req, res) => {
   const { userid } = req.params;
