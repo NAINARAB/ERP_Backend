@@ -19,14 +19,7 @@ app.get('/', (req, res) => {
   res.json({data:[], status: 'Success', message:'SMT-ERP API HOME'})
 })
 
-app.use(userRoutes)
-app.use(loginRoute)
-app.use(SalesForceAPI)
-app.use(BranchROute)
-app.use(SidebarRoute)
-app.use(PageRights)
-app.use(CompanyRoute)
-app.use(losRoute)
+app.use(userRoutes, loginRoute, SalesForceAPI, BranchROute, SidebarRoute, PageRights, CompanyRoute, losRoute)
 
 
 const port = process.env.PORT || 5000;
