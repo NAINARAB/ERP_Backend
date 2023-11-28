@@ -24,7 +24,7 @@ loginRoute.get('/api/login', async (req, res) => {
     if (result.recordset.length === 1) {
       const userInfo = result.recordset[0];
       const ssid = `${Math.floor(100000 + Math.random() * 900000)}${moment().format('DD-MM-YYYY hh:mm:ss')}`;
-      
+
       const sessionSP = new sql.Request(SMTERP);
       sessionSP.input('Id', sql.Int, 0);
       sessionSP.input('UserId', sql.BigInt, userInfo.UserId);
@@ -42,8 +42,31 @@ loginRoute.get('/api/login', async (req, res) => {
     }
   } catch (error) {
     console.error(error);
-    res.status(500).send('Error calling the stored procedure');
+    res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
   }
 });
+
+loginRoute.put('/api/logout', async (req, res) => {
+  const { userid, sessionId } = req.query;
+  try {
+    const sessionSP = new sql.Request(SMTERP)
+    sessionSP.input('Id', sql.Int, 0);
+    sessionSP.input('UserId', sql.BigInt, userid);
+    sessionSP.input('SessionId', sql.NVarChar, sessionId);
+    sessionSP.input('LogStatus', sql.Int, 0);
+    sessionSP.input('APP_Type', sql.Int, 1);
+    const sessionResult = await sessionSP.execute('UserLogSP');
+
+    if (sessionResult.recordset.length > 0) {
+      res.status(200).json({ data: [], status: 'Success', message: 'Session Ended' });
+    } else {
+      res.status(404).json({data: [], status: 'Failure', message: ''})
+    }
+  }
+  catch (e) {
+    console.log(e)
+    res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
+  }
+})
 
 export default loginRoute;
