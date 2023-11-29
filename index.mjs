@@ -9,6 +9,7 @@ import SidebarRoute from './routes/sidebar.mjs';
 import PageRights from './routes/login-logout/pageRights.mjs';
 import CompanyRoute from './routes/company.mjs';
 import losRoute from './routes/report/los.mjs';
+import apiData from './config/apis.mjs';
 
 const app = express();
 app.use(cors());
@@ -16,8 +17,108 @@ app.use(bodyParser.json({ limit: '50mb' }));
 
 
 app.get('/', (req, res) => {
-  res.json({data:[], status: 'Success', message:'SMT-ERP API HOME'})
-})
+  const bg = (method) => {
+    if(method === "GET"){
+      return 'lightgreen'
+    } else if (method === "POST"){
+      return 'orange'
+    } else if (method === "PUT"){
+      return 'lightblue'
+    } else {
+      return 'red'
+    }
+  }
+  const htmlContent = `
+  <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>API Documentation</title>
+      <style>
+          table {
+              border: 1px solid black;
+          }
+  
+          th {
+              border: 1px solid black;
+              padding: 5px 20px;
+          }
+  
+          tr {
+              border: 1px solid black;
+              padding: 2px;
+          }
+  
+          td {
+              border: 1px solid black;
+              padding: 10px;
+              text-align: center;
+          }
+  
+          @font-face {
+              font-family: 'prosans';
+              font-style: normal;
+              font-weight: 400;
+              src: local('Open Sans'), local('OpenSans'), url(https://fonts.gstatic.com/s/productsans/v5/HYvgU2fE2nRJvZ5JFAumwegdm0LZdjqr5-oayXSOefg.woff2) format('woff2');
+          }
+  
+          * {
+              font-family: prosans;
+              box-sizing: border-box;
+          }
+  
+          body {
+              margin: 2em;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              flex-direction: column;
+              background: linear-gradient(45deg, #EE9CA7, #FFDDE1);
+          }
+  
+          ::-webkit-scrollbar {
+              display: none;
+          }
+      </style>
+    </head>
+  
+    <body>
+      <h2 style="margin-top: 2em;color: white; text-shadow: 0px 4px 4px black">SMT APIs</h2>
+      <table>
+          <thead>
+              <tr>
+                  <th>SNo</th>
+                  <th>Method</th>
+                  <th>API</th>
+                  <th>Authorization</th>
+                  <th>header</th>
+                  <th>query</th>
+                  <th>param</th>
+                  <th>body</th>
+              </tr>
+          </thead>
+          <tbody>
+              ${apiData.map((item, index) => `
+              <tr>
+                  <td>${index + 1}</td><!--sno-->
+                  <td style="background-color: ${bg(item.method)}">${item.method}</td><!--method-->
+                  <td style="text-align: left">${item.api}</td><!--api-->
+                  <td>${item.authorization}</td><!--authorization-->
+                  <td>${item.header}</td><!--header-->
+                  <td>${item.query}</td><!--query-->
+                  <td>${item.param}</td><!--param-->
+                  <td>${item.body}</td><!--body-->
+              </tr>`
+              ).join('')}
+          </tbody>
+      </table>
+    </body>
+  
+  </html>
+  `;
+  res.setHeader('Content-Type', 'text/html');
+  res.send(htmlContent);
+});
 
 app.use(userRoutes, loginRoute, SalesForceAPI, BranchROute, SidebarRoute, PageRights, CompanyRoute, losRoute)
 

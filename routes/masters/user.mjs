@@ -64,7 +64,7 @@ userRoute.post('/api/users', authenticateToken, async (req, res) => {
         console.error(e);
         res.status(422).json({ data: [], status: 'Failure', message: 'User Creation Failed' });
     }
-});
+})
 
 userRoute.put('/api/users', authenticateToken, async (req, res) => {
     const { name, mobile, usertype, password, branch, userid } = req.body;
