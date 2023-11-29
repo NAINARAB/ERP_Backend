@@ -17,15 +17,15 @@ PageRights.get('/api/pagerights', authenticateToken, async (req, res) => {
         if (result.recordset.length !== 0) {
             res.status(200).json({
                 status: "success",
-                data: {
+                data: [{
                     Read_Rights: result.recordset[0].Read_Rights,
                     Add_Rights: result.recordset[0].Add_Rights,
                     Edit_Rights: result.recordset[0].Edit_Rights,
                     Delete_Rights: result.recordset[0].Delete_Rights
-                }, message: ""
+                }], message: ""
             })
         } else {
-            res.status(200).json({ data: { Read_Rights: 0, Add_Rights: 0, Edit_Rights: 0, Delete_Rights: 0 }, status: "Success", message: "No Page Rights" })
+            res.status(200).json({ data: [{ Read_Rights: 0, Add_Rights: 0, Edit_Rights: 0, Delete_Rights: 0 }], status: "Success", message: "No Page Rights" })
         }
     }
     catch (err) {

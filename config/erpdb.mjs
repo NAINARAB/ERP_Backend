@@ -1,11 +1,14 @@
 import sql from 'mssql';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+require('dotenv').config();
 
 const ERPSMTCONFIG = {
-  server: "103.14.120.9",
-  database: "SMT_ERP_DB",
+  server: process.env.server,
+  database: process.env.database,
   driver: "SQL Server",
-  user: "SMT_ADMIN",
-  password: "yvKj3699^",
+  user: process.env.user,
+  password: process.env.password,
   stream: false,
   options: {
     trustedConnection: true,

@@ -13,7 +13,6 @@ function md5Hash(input) {
 loginRoute.get('/api/login', async (req, res) => {
   const { user, pass } = req.query;
   const md5Password = md5Hash(pass);
-
   try {
     const loginSP = new sql.Request(SMTERP);
     loginSP.input('UserName', sql.NVarChar, user);

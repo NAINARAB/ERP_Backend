@@ -11,6 +11,10 @@ import CompanyRoute from './routes/company.mjs';
 import losRoute from './routes/report/los.mjs';
 import apiData from './config/apis.mjs';
 
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+require('dotenv').config();
+
 const app = express();
 app.use(cors());
 app.use(bodyParser.json({ limit: '50mb' }));
@@ -19,13 +23,13 @@ app.use(bodyParser.json({ limit: '50mb' }));
 app.get('/', (req, res) => {
   const bg = (method) => {
     if(method === "GET"){
-      return 'lightgreen'
+      return '#00CDAC'
     } else if (method === "POST"){
-      return 'orange'
+      return '#DD2476'
     } else if (method === "PUT"){
-      return 'lightblue'
+      return '#A890FE'
     } else {
-      return 'red'
+      return '#FF61D2'
     }
   }
   const htmlContent = `
@@ -33,7 +37,7 @@ app.get('/', (req, res) => {
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>API Documentation</title>
+      <title>SMTERP API</title>
       <style>
           table {
               border: 1px solid black;
@@ -69,16 +73,10 @@ app.get('/', (req, res) => {
   
           body {
               margin: 2em;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              flex-direction: column;
               background: linear-gradient(45deg, #EE9CA7, #FFDDE1);
           }
   
-          ::-webkit-scrollbar {
-              display: none;
-          }
+          
       </style>
     </head>
   

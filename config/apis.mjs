@@ -262,15 +262,6 @@ const apiData = [
     },
     {
       method: 'GET',
-      api: '/api/sidebar',
-      authorization: 'token',
-      header: 'Authorization',
-      query: '-',
-      param: '-',
-      body: '-'
-    },
-    {
-      method: 'GET',
       api: '/api/side',
       authorization: 'token',
       header: 'Authorization',
