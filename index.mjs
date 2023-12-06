@@ -9,7 +9,9 @@ import SidebarRoute from './routes/sidebar.mjs';
 import PageRights from './routes/login-logout/pageRights.mjs';
 import CompanyRoute from './routes/company.mjs';
 import losRoute from './routes/report/los.mjs';
+import DesignationRoute from './routes/masters/designation.mjs';
 import apiData from './config/apis.mjs';
+import EmpAttanance from './routes/attanance.mjs';
 
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
@@ -118,7 +120,7 @@ app.get('/', (req, res) => {
   res.send(htmlContent);
 });
 
-app.use(userRoutes, loginRoute, SalesForceAPI, BranchROute, SidebarRoute, PageRights, CompanyRoute, losRoute)
+app.use(userRoutes, loginRoute, SalesForceAPI, BranchROute, SidebarRoute, PageRights, CompanyRoute, losRoute, DesignationRoute,EmpAttanance)
 
 
 const port = process.env.PORT || 5000;

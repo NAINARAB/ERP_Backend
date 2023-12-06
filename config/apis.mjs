@@ -304,6 +304,33 @@ const apiData = [
       query: '-',
       param: '-',
       body: 'menuType, menuName, menuLink, mainMenuId, subMenuId'
+    },
+    {
+      method: 'GET',
+      api: '/api/employee',
+      authorization: 'token', 
+      header: 'Authorization',
+      query: '-',
+      param: '-',
+      body: '-'
+    },
+    {
+      method: 'POST',
+      api: '/api/employee',
+      authorization: 'token', 
+      header: 'Authorization',
+      query: '-',
+      param: '-',
+      body: 'data, userMGT'
+    },
+    {
+      method: 'PUT',
+      api: '/api/employee',
+      authorization: 'token', 
+      header: 'Authorization',
+      query: '-',
+      param: '-',
+      body: 'data, ID'
     }
   ];
 

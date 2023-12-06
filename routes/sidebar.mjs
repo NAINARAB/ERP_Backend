@@ -38,7 +38,7 @@ SidebarRoute.post('/api/updatesidemenu', authenticateToken, (req, res) => {
                       AND Menu_Type = ${MenuType}`;
     SMTERP.query(deleteRow)
         .then(result => {
-            const insertRow = `INSERT INTO dbo.tbl_User_Rights 
+            const insertRow = `INSERT INTO tbl_User_Rights 
         (User_Id, Menu_Id, Menu_Type, Read_Rights, Add_Rights, Edit_Rights, Delete_Rights, Print_Rights)
         VALUES 
         (${User}, ${MenuId}, ${MenuType}, ${ReadRights}, ${AddRights}, ${EditRights}, ${DeleteRights}, ${PrintRights})`;
