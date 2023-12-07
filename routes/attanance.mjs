@@ -5,16 +5,24 @@ import authenticateToken from "./login-logout/auth.mjs";
 
 const EmpAttanance = express.Router()
 
-EmpAttanance.get('/api/attanance', async (req, res) => {
-    const { id } = req.query;
+async function getEmpId(id) {
     try {
         const EMP = `SELECT COALESCE((SELECT Emp_Id FROM tbl_Employee_Master WHERE User_Mgt_Id = ${id}), 0) AS Emp_Id`;
         const getEmp = await SMTERP.query(EMP)
         const Emp_Id = getEmp.recordset[0]['Emp_Id']
+        return Emp_Id
+    } catch (e) {
+        console.log(e);
+    }
+}
+
+EmpAttanance.get('/api/attendance', authenticateToken, async (req, res) => {
+    const { id } = req.query;
+    try {
+        const Emp_Id = await getEmpId(id)
         if(Emp_Id === 0){
             return res.json({ data: [], status: 'Failure', message: 'Not An Employee' })
         }
-
         const CheckAttanance = `SELECT * FROM tbl_Employee_Attanance 
         WHERE Emp_Id = ${Emp_Id} 
           AND CONVERT(DATE, Start_Date) = CONVERT(DATE, GETDATE()) 
@@ -32,16 +40,13 @@ EmpAttanance.get('/api/attanance', async (req, res) => {
     }
 })
 
-EmpAttanance.post('/api/attanance', async (req, res) => {
+EmpAttanance.post('/api/attendance', authenticateToken, async (req, res) => {
     const { UserId, Latitude, Longitude } = req.body;
-    console.log( UserId, Latitude, Longitude)
 
     try {
-        const EMP = `SELECT COALESCE((SELECT Emp_Id FROM tbl_Employee_Master WHERE User_Mgt_Id = ${UserId}), 0) AS Emp_Id`;
-        const getEmp = await SMTERP.query(EMP)
-        const Emp_Id = getEmp.recordset[0]['Emp_Id']
+        const Emp_Id = await getEmpId(UserId)
         if(Emp_Id === 0){
-            return res.json({ data: [], status: 'Failure', message: 'You are not an Employee' })
+            return res.json({ data: [], status: 'Failure', message: 'Not An Employee' })
         }
 
         const CheckAttanance = `SELECT * FROM tbl_Employee_Attanance 
@@ -71,14 +76,12 @@ EmpAttanance.post('/api/attanance', async (req, res) => {
     }
 })
 
-EmpAttanance.put('/api/attanance', async (req, res) => {
+EmpAttanance.put('/api/attendance', authenticateToken, async (req, res) => {
     const { UserId, Work_Summary } = req.body;
     try {
-        const EMP = `SELECT COALESCE((SELECT Emp_Id FROM tbl_Employee_Master WHERE User_Mgt_Id = ${UserId}), 0) AS Emp_Id`;
-        const getEmp = await SMTERP.query(EMP)
-        const Emp_Id = getEmp.recordset[0]['Emp_Id']
+        const Emp_Id = await getEmpId(UserId)
         if(Emp_Id === 0){
-            return res.json({ data: [], status: 'Failure', message: 'You are not an Employee' })
+            return res.json({ data: [], status: 'Failure', message: 'Not An Employee' })
         }
 
         const CheckAttanance = `SELECT * FROM tbl_Employee_Attanance 
@@ -106,5 +109,80 @@ EmpAttanance.put('/api/attanance', async (req, res) => {
         res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
     }
 })
+
+EmpAttanance.get('/api/UserAttendanceHistory', authenticateToken, async (req, res) => {
+    const {UserId} = req.query;
+    try{
+        const Emp_Id = await getEmpId(UserId)
+        if(Emp_Id === 0){
+            return res.json({ data: [], status: 'Failure', message: 'Not An Employee' })
+        }
+        const getAttendance = `SELECT * FROM tbl_Employee_Attanance WHERE Emp_Id = ${Emp_Id}`;
+        const result = await SMTERP.query(getAttendance)
+        if(result.recordset.length > 0){
+            res.json({data: result.recordset, message:'Available', status: 'Success'})
+        } else {
+            res.json({data: [], message:'Not Available', status: 'Success'})
+        }
+    } catch (e){
+        console.log(e)
+        res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
+    }
+})
+
+EmpAttanance.get('/api/ActiveEmployee', authenticateToken, async (req,res) => {
+    try{
+        const getActiveEmp = `SELECT 
+                                a.Id, 
+                                a.Emp_Id, 
+                                e.Emp_Code, 
+                                e.Emp_Name, 
+                                a.Entry_Date, 
+                                a.Start_Date, 
+                                a.InTime 
+                            FROM tbl_Employee_Attanance AS a 
+                            JOIN tbl_Employee_Master as e 
+                            ON a.Emp_Id = e.Emp_Id 
+                            WHERE a.Current_St = 0`;
+        const result = await SMTERP.query(getActiveEmp);
+        if (result.recordset.length > 0) {
+            res.json({data: result.recordset, status: "Success", message: 'Available'})
+        } else {
+            res.json({data: [], status: "Success", message: 'Not Available'})
+        }
+    } catch (e){
+        console.log(e);
+        res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
+    }
+})
+
+EmpAttanance.put('/api/ActiveEmployee', authenticateToken, async (req, res) => {
+    const { Id, OutDate, OutTime } = req.body;
+    try {
+        const CloseAttendance = `
+            UPDATE tbl_Employee_Attanance 
+            SET OutTime = CONVERT(TIME, @OutTime), OutDate = CONVERT(DATE, @OutDate), Work_Summary = @WorkSummary, Current_St = @CurrentSt
+            WHERE Id = @Id`;
+
+        const result = await SMTERP.request()
+            .input('OutTime', OutTime)
+            .input('OutDate', OutDate)
+            .input('WorkSummary', 'Attendance Closed By Admin') 
+            .input('CurrentSt', 1) 
+            .input('Id', Id)
+            .query(CloseAttendance);
+
+        if (result && result.rowsAffected && result.rowsAffected[0] > 0) {
+            res.json({ data: [], status: 'Success', message: 'Attendance Closed!' });
+        } else {
+            res.json({ data: [], status: 'Failure', message: 'Failed To Close Attendance' });
+        }
+    } catch (e) {
+        console.log(e);
+        res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
+    }
+});
+
+
 
 export default EmpAttanance
