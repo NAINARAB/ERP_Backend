@@ -331,7 +331,70 @@ const apiData = [
       query: '-',
       param: '-',
       body: 'data, ID'
-    }
+    },
+    {
+      method: 'GET',
+      api: '/api/attendance',
+      authorization: 'token',
+      header: 'Authorization',
+      query: 'id',
+      param: '-',
+      body: '-'
+    },
+    {
+      method: 'POST',
+      api: '/api/attendance',
+      authorization: 'token',
+      header: 'Authorization',
+      query: '-',
+      param: '-',
+      body: 'UserId, Latitude, Longitude'
+    },
+    {
+      method: 'PUT',
+      api: '/api/attendance',
+      authorization: 'token',
+      header: 'Authorization',
+      query: '-',
+      param: '-',
+      body: 'UserId, Work_Summary'
+    },
+    {
+      method: 'GET',
+      api: '/api/UserAttendanceHistory',
+      authorization: 'token',
+      header: 'Authorization',
+      query: 'UserId',
+      param: '-',
+      body: '-'
+    },
+    {
+      method: 'GET',
+      api: '/api/ActiveEmployee',
+      authorization: 'token',
+      header: 'Authorization',
+      query: '-',
+      param: '-',
+      body: '-'
+    },
+    {
+      method: 'PUT',
+      api: '/api/ActiveEmployee',
+      authorization: 'token',
+      header: 'Authorization',
+      query: '-',
+      param: '-',
+      body: 'Id, OutDate, OutTime'
+    },
+    {
+      method: 'GET',
+      api: '/api/TaskList',
+      authorization: 'token',
+      header: 'Authorization',
+      query: '-',
+      param: '-',
+      body: '-'
+    },
   ];
 
   export default apiData;
