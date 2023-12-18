@@ -36,7 +36,7 @@ EmpAttanance.get('/api/attendance', authenticateToken, async (req, res) => {
             res.json({ data: [], status: 'Success', message: 'false' })
         }
     } catch (e) {
-        ServerError(e, ' /api/attendance ', 'GET')
+        ServerError(e, ' /api/attendance ', 'GET', res)
     }
 })
 
@@ -110,7 +110,7 @@ EmpAttanance.post('/api/attendance', authenticateToken, async (req, res) => {
             }
         }
     } catch (e) {
-        ServerError(e, ' /api/attendance ', 'POST')
+        ServerError(e, ' /api/attendance ', 'POST', res)
     }
 })
 
@@ -143,7 +143,7 @@ EmpAttanance.put('/api/attendance', authenticateToken, async (req, res) => {
             res.json({ data: [], status: 'Success', message: 'No Attandance Entry Found For Today' })
         }
     } catch (e) {
-        ServerError(e, ' /api/attendance ', 'PUT')
+        ServerError(e, ' /api/attendance ', 'PUT', res)
     }
 })
 
@@ -162,7 +162,7 @@ EmpAttanance.get('/api/UserAttendanceHistory', authenticateToken, async (req, re
             res.json({ data: [], message: 'Not Available', status: 'Success' })
         }
     } catch (e) {
-        ServerError(e, ' /api/attendance ', 'GET')
+        ServerError(e, ' /api/attendance ', 'GET', res)
     }
 })
 
@@ -187,7 +187,7 @@ EmpAttanance.get(' /api/UserAttendanceHistory ', authenticateToken, async (req, 
             res.json({ data: [], status: "Success", message: 'Not Available' })
         }
     } catch (e) {
-        ServerError(e)
+        ServerError(e, ' /api/UserAttendanceHistory ', 'GET', res)
     }
 })
 
@@ -212,8 +212,7 @@ EmpAttanance.get('/api/ActiveEmployee', authenticateToken, async (req, res) => {
             res.json({ data: [], status: "Success", message: 'Not Available' })
         }
     } catch (e) {
-        console.log(e);
-        res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
+        ServerError(e, '/api/ActiveEmployee', 'GET', res)
     }
 })
 
@@ -239,7 +238,7 @@ EmpAttanance.put('/api/ActiveEmployee', authenticateToken, async (req, res) => {
             res.json({ data: [], status: 'Failure', message: 'Failed To Close Attendance' });
         }
     } catch (e) {
-        ServerError(e, '/api/ActiveEmployee', 'PUT')
+        ServerError(e, '/api/ActiveEmployee', 'PUT', res)
     }
 });
 
@@ -260,7 +259,7 @@ EmpAttanance.get('/api/TaskList', authenticateToken, async (req, res) => {
             res.json({ data: [], status: "Success", message: 'No Records' })
         }
     } catch (e) {
-        ServerError(e, '/api/TaskList', 'GET')
+        ServerError(e, '/api/TaskList', 'GET', res)
     }
 })
 
@@ -274,7 +273,7 @@ EmpAttanance.get('/api/employeeDropDown', authenticateToken, async (req, res) =>
             res.json({ data: [], status: 'Success', message: 'Not Available' })
         }
     } catch (e) {
-        ServerError(e, ' /api/employee-without-attendance ', 'GET');
+        ServerError(e, ' /api/employee-without-attendance ', 'GET', res);
     }
 })
 
