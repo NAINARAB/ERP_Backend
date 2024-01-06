@@ -11,7 +11,6 @@ function md5Hash(input) {
     return crypto.createHash('md5').update(input).digest('hex');
 }
 
-
 CustomerRoute.get('/api/costCenter', authenticateToken, async (req, res) => {
     try {
         const getCostCenter = `
@@ -37,7 +36,6 @@ CustomerRoute.get('/api/costCenter', authenticateToken, async (req, res) => {
 
 CustomerRoute.post('/api/costCenter', authenticateToken, async (req, res) => {
     const { category, name, alias, under } = req.body;
-    console.log(category, name, alias)
     if ((!category) || (!name)) {
         return res.status(400).json({ data: [], status: 'Failure', message: 'category, name, under are required fields!' })
     }
@@ -250,7 +248,7 @@ CustomerRoute.post('/api/customer', authenticateToken, async (req, res) => {
 });
 
 CustomerRoute.put('/api/customer', authenticateToken, async (req, res) => {
-    const { data } = req.body; console.log(data);
+    const { data } = req.body;
 
     if (!data || typeof data !== 'object') {
         return res.status(400).json({ data: [], status: 'Failure', message: 'Invalid or missing data object' });
