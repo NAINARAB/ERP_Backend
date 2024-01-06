@@ -38,7 +38,6 @@ purchaseOrederReport.get('/api/StockItemList', dbconnect, authenticateToken, asy
     }
 })
 
-
 purchaseOrederReport.get('/api/PurchaseOrderReport', dbconnect, authenticateToken, async (req, res) => {
     try {
         const { Report_Type, Fromdate, Todate, Customer_Id, Item_Id, BillNo } = req.query;

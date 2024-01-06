@@ -18,6 +18,7 @@ import apiData from './config/apis.mjs';
 import EmpAttanance from './routes/attanance.mjs';
 import purchaseOrederReport from './routes/report/purchaseorder.mjs';
 import CustomerRoute from './routes/masters/customer.mjs';
+import CustomerReportRoute from './routes/report/customerReport.mjs'
 
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
@@ -124,7 +125,7 @@ app.use(bodyParser.json({ limit: '50mb' }));
 //   res.send(htmlContent);
 // });
 
-app.use(userRoutes, loginRoute, SalesForceAPI, BranchROute, SidebarRoute, PageRights, CompanyRoute, losRoute, DesignationRoute,EmpAttanance, purchaseOrederReport, CustomerRoute)
+app.use(userRoutes, loginRoute, SalesForceAPI, BranchROute, SidebarRoute, PageRights, CompanyRoute, losRoute, DesignationRoute,EmpAttanance, purchaseOrederReport, CustomerRoute, CustomerReportRoute)
 
 const pathList = [
   './routes/masters/user.mjs',
