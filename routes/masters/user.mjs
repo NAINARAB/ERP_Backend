@@ -2,7 +2,8 @@ import express from 'express';
 import authenticateToken from '../login-logout/auth.mjs';
 import sql from 'mssql';
 import SMTERP from '../../config/erpdb.mjs';
-import crypto from 'crypto'
+import crypto from 'crypto';
+import ServerError from '../../config/handleError.mjs'
 
 const userRoute = express.Router();
 
@@ -56,7 +57,6 @@ userRoute.post('/api/users', authenticateToken, async (req, res) => {
 
         const result = await newuser.execute('UsersSP');
         if (result.recordset.length > 0) {
-            console.log(result.recordset)
             res.status(200).json({ data: [], status: 'Success', message: 'New User Created' });
         } else {
             res.status(500).json({ data: [], status: 'Failure', message: 'User Creation Failed' });
@@ -126,15 +126,93 @@ userRoute.delete('/api/users/:userid', authenticateToken, async (req, res) => {
     }
 });
 
+// userRoute.get('/api/usertype', authenticateToken, async (req, res) => {
+//     const query = 'SELECT * FROM tbl_User_Type';
+//     SMTERP.query(query).then(result => {
+//         res.status(200).json({ data: result.recordset, status: "Success", message: '' });
+//     }).catch(err => {
+//         console.error('Error executing SQL query:', err);
+//         res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
+//     })
+// });
+
 userRoute.get('/api/usertype', authenticateToken, async (req, res) => {
-    const query = 'SELECT * FROM dbo.tbl_User_Type';
-    SMTERP.query(query).then(result => {
-        res.status(200).json({ data: result.recordset, status: "Success", message: '' });
-    }).catch(err => {
-        console.error('Error executing SQL query:', err);
-        res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
-    })
+    try {
+        const getCustomer = `SELECT * FROM tbl_User_Type WHERE IsActive = 1 ORDER BY Id ASC`;
+        const result = await SMTERP.query(getCustomer)
+        if (result && result.recordset.length > 0) {
+            res.json({ data: result.recordset, status: "Success", message: "Found" }).status(200);
+        } else {
+            res.json({ data: [], status: "Success", message: "Not Found" }).status(200);
+        }
+    } catch (e) {
+        ServerError(e, '/api/customerCategories', 'get', res);
+    }
+})
+
+userRoute.post('/api/usertype', authenticateToken, async (req, res) => {
+    const { name, alias } = req.body;
+    
+    if (!name) {
+        return res.status(400).json({ status: "Failure", message: 'name required', data: [] });
+    }
+
+    try {
+        const checkQuery = 'SELECT COUNT(*) AS count FROM tbl_User_Type WHERE UserType = @name AND IsActive = 1';
+        const checkRequest = new sql.Request(SMTERP);
+        checkRequest.input('name', sql.NVarChar, name);
+        const checkResult = await checkRequest.query(checkQuery);
+
+        if (checkResult.recordset[0].count > 0) {
+            return res.status(400).json({ data: [], status: "Failed", message: "Already exists!" });
+        } else {
+            const getMaxIdQuery = 'SELECT ISNULL(MAX(Id), 0) AS MaxId FROM tbl_User_Type';
+            const maxIdResult = await new sql.Request(SMTERP).query(getMaxIdQuery);
+            const newId = parseInt(maxIdResult.recordset[0].MaxId) + 1;
+
+            const insertUserType = 'INSERT INTO tbl_User_Type (Id, UserType, Alias) VALUES (@id, @name, @alias)';
+            const insertRequest = new sql.Request(SMTERP);
+            insertRequest.input('id', newId);
+            insertRequest.input('name', sql.NVarChar, name);
+            insertRequest.input('alias', sql.NVarChar, alias);
+            
+            const result = await insertRequest.query(insertUserType);
+
+            if (result.rowsAffected.length > 0) {
+                return res.status(201).json({ data: [], status: "Success", message: "Created" });
+            } else {
+                return res.status(400).json({ data: [], status: "Failed", message: "Failed" });
+            }
+        }
+    } catch (e) {
+        ServerError(e, '/api/usertype', 'post', res);
+    }
 });
+
+
+userRoute.delete('/api/usertype', authenticateToken, async (req, res) => {
+    const { id } = req.query;
+    if (!id) {
+        return res.status(400).json({ data: [], status: 'Failure', message: 'id required' })
+    }
+    try {
+        const deleteCustomer = 'UPDATE tbl_User_Type SET IsActive = 0 WHERE Id = @id';
+        const deleteRequest = new sql.Request(SMTERP);
+        deleteRequest.input('id', sql.Int, id);
+        const result = await deleteRequest.query(deleteCustomer)
+        if (result.rowsAffected.length > 0) {
+            res.status(200).json({ data: [], status: "Success", message: "Deleted" });
+        } else {
+            res.status(400).json({ data: [], status: "Failed", message: "Failed" });
+        }
+
+    } catch (e) {
+        ServerError(e, '/api/usertype', 'delete', res)
+    }
+})
+
+
+
 
 userRoute.get('/api/userid', (req, res) => {
     const authId = req.header('Authorization');
@@ -292,8 +370,6 @@ userRoute.put('/api/employee', authenticateToken, async (req, res) => {
         res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
     }
 });
-
-
 
 
 export default userRoute;
