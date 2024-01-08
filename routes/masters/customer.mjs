@@ -159,12 +159,16 @@ CustomerRoute.post('/api/customer', authenticateToken, async (req, res) => {
     }
 
     try {
-        const queryCheckGstin = `SELECT COUNT(*) AS count FROM tbl_Customer_Master WHERE Gstin = '${data?.Gstin}'`;
-        const GstResult = await SMTERP.query(queryCheckGstin);
 
-        if (GstResult.recordset[0].count > 0) {
-            return res.status(400).json({ data: [], status: 'Failure', message: 'Gstin is Already Exists' });
+        if (data.Gstin !== '') {
+            const queryCheckGstin = `SELECT COUNT(*) AS count FROM tbl_Customer_Master WHERE Gstin = '${data?.Gstin}'`;
+            const GstResult = await SMTERP.query(queryCheckGstin);
+
+            if (GstResult.recordset[0].count > 0) {
+                return res.status(400).json({ data: [], status: 'Failure', message: 'Gstin is Already Exists' });
+            }
         }
+
 
         const checkmobile = `SELECT UserName from tbl_Users WHERE UserName = '${data?.Mobile_no}' AND UDel_Flag = 0`;
         const checkResult = await SMTERP.query(checkmobile);
@@ -255,11 +259,13 @@ CustomerRoute.put('/api/customer', authenticateToken, async (req, res) => {
     }
 
     try {
-        const queryCheckGstin = `SELECT COUNT(*) AS count FROM tbl_Customer_Master WHERE Gstin = '${data?.Gstin}' AND Cust_Id != '${data.User_Mgt_Id}'`;
-        const GstResult = await SMTERP.query(queryCheckGstin);
-
-        if (GstResult.recordset[0].count > 0) {
-            return res.status(400).json({ data: [], status: 'Failure', message: 'Gstin is already exists for other customer' });
+        if (data.Gstin !== '') {
+            const queryCheckGstin = `SELECT COUNT(*) AS count FROM tbl_Customer_Master WHERE Gstin = '${data?.Gstin}'`;
+            const GstResult = await SMTERP.query(queryCheckGstin);
+            
+            if (GstResult.recordset[0].count > 0) {
+                return res.status(400).json({ data: [], status: 'Failure', message: 'Gstin is Already Exists' });
+            }
         }
 
         const checkmobile = `SELECT UserName from tbl_Users WHERE UserName = '${data?.Mobile_no}' AND UDel_Flag = 0 AND UserId != '${data.User_Mgt_Id}'`;
