@@ -335,6 +335,27 @@ CustomerRoute.put('/api/customer', authenticateToken, async (req, res) => {
     }
 });
 
+CustomerRoute.get('/api/isCustomer', authenticateToken, async (req, res) => {
+    const { UserId } = req.query;
+    try {
+        if (!UserId) {
+            return res.status(400).json({ data: [], status: 'Failure', message: 'UserId is Required' });
+        }
+
+        const checkCustomer = `SELECT Cust_Id FROM tbl_Customer_Master WHERE User_Mgt_Id = '${UserId}'`;
+        const result = await SMTERP.query(checkCustomer);
+
+        if (result.recordset.length === 0) {
+            res.status(404).json({ data: [], status: 'Failure', message: 'Not a Customer', isCustomer: false });
+        } else {
+            res.status(200).json({ data: [], status: 'Success', message: 'Customer Found', isCustomer: true });
+        }
+
+    } catch (e) {
+        ServerError(e, '/api/isCustomer', 'get', res);
+    }
+})
+
 
 
 export default CustomerRoute;

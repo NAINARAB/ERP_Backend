@@ -6,7 +6,7 @@ import SMTERP from '../../config/erpdb.mjs'
 
 const CusReportRoute = express.Router() 
 
-CusReportRoute.get('/api/getBalance', authenticateToken, async (req, res) => {
+CusReportRoute.get('/api/getBalance',  async (req, res) => {
     const { UserId } = req.query;
 
     try {
@@ -28,9 +28,11 @@ CusReportRoute.get('/api/getBalance', authenticateToken, async (req, res) => {
 
         const CustInfo = await GetCustDetails.execute('Customer_Deatils_By_Cust_Id');
 
-        if (!CustInfo.recordset || CustInfo.recordset.length === 0) {
+        if (CustInfo.recordset.length === 0) {
+            
             return res.status(404).json({ data: [], status: 'Failure', message: 'Customer Details Not Found', isCustomer: true });
         }
+        console.log(CustInfo.recordset, 'cus record')
 
         const recordsetArray = await Promise.all(CustInfo.recordset.map(async (obj) => {
             const GetBalance = new sql.Request(SMTERP);
