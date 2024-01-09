@@ -4,9 +4,9 @@ import sql from 'mssql'
 import ServerError from '../../config/handleError.mjs'
 import SMTERP from '../../config/erpdb.mjs'
 
-const CusReportRoute = express.Router() 
+const CusReportRoute = express.Router()
 
-CusReportRoute.get('/api/getBalance',  async (req, res) => {
+CusReportRoute.get('/api/getBalance', async (req, res) => {
     const { UserId } = req.query;
 
     try {
@@ -29,10 +29,8 @@ CusReportRoute.get('/api/getBalance',  async (req, res) => {
         const CustInfo = await GetCustDetails.execute('Customer_Deatils_By_Cust_Id');
 
         if (CustInfo.recordset.length === 0) {
-            
             return res.status(404).json({ data: [], status: 'Failure', message: 'Customer Details Not Found', isCustomer: true });
         }
-        console.log(CustInfo.recordset, 'cus record')
 
         const recordsetArray = await Promise.all(CustInfo.recordset.map(async (obj) => {
             const GetBalance = new sql.Request(SMTERP);
@@ -45,7 +43,7 @@ CusReportRoute.get('/api/getBalance',  async (req, res) => {
             } catch (e) {
                 console.error(e);
                 res.status(422).json({ data: [], status: 'Failure', message: '', isCustomer: true });
-                throw e; 
+                throw e;
             }
         }));
 
@@ -56,6 +54,34 @@ CusReportRoute.get('/api/getBalance',  async (req, res) => {
         ServerError(e, '/api/getBalance', 'GET', res);
     }
 });
+
+
+CusReportRoute.get('/api/StatementOfAccound', async (req, res) => {
+    const { Cust_Id, Acc_Id, Company_Id, Fromdate, Todate } = req.query;
+    console.log(Cust_Id, Acc_Id, Company_Id, Fromdate, Todate)
+
+    if ((!Cust_Id) || (!Acc_Id) || (!Company_Id) || (!Fromdate) || (!Todate)) {
+        return res.status(400).json({ status: 'Failure', message: 'Cust_Id, Acc_Id, Company_Id, Fromdate, Todate are Required', data: [] });
+    }
+
+    const GetStatement = new sql.Request(SMTERP);
+    GetStatement.input('Cust_Id', Cust_Id);
+    GetStatement.input('Acc_Id', Acc_Id);
+    GetStatement.input('Company_Id', Company_Id);
+    GetStatement.input('Fromdate', Fromdate);
+    GetStatement.input('Todate', Todate);
+
+    try {
+        const ResData = await GetStatement.execute('Online_Statement_Of_Accounts_VW');
+        if( ResData && ResData.recordset.length > 0 ) {
+            res.status(200).json({data: ResData.recordset, status: 'Success', message:'Found'})
+        } else {
+            res.status(200).json({data: [], status: 'Success', message:'No Rows Selected'})
+        }
+    } catch (e) {
+        ServerError(e, '/api.StatementOfAccount', 'get', res)
+    }
+})
 
 
 
