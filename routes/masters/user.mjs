@@ -152,7 +152,7 @@ userRoute.get('/api/usertype', authenticateToken, async (req, res) => {
 
 userRoute.post('/api/usertype', authenticateToken, async (req, res) => {
     const { name, alias } = req.body;
-    
+
     if (!name) {
         return res.status(400).json({ status: "Failure", message: 'name required', data: [] });
     }
@@ -175,7 +175,7 @@ userRoute.post('/api/usertype', authenticateToken, async (req, res) => {
             insertRequest.input('id', newId);
             insertRequest.input('name', sql.NVarChar, name);
             insertRequest.input('alias', sql.NVarChar, alias);
-            
+
             const result = await insertRequest.query(insertUserType);
 
             if (result.rowsAffected.length > 0) {
@@ -210,7 +210,6 @@ userRoute.delete('/api/usertype', authenticateToken, async (req, res) => {
         ServerError(e, '/api/usertype', 'delete', res)
     }
 })
-
 
 
 
@@ -368,6 +367,76 @@ userRoute.put('/api/employee', authenticateToken, async (req, res) => {
     } catch (e) {
         console.log(e);
         res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
+    }
+});
+
+// userRoute.put('/api/changePassword', authenticateToken, async (req, res) => {
+//     const { oldPassword, newPassword, userId } = req.body;
+
+//     if (!oldPassword || !newPassword || !userId) {
+//         return res.status(400).json({ message: 'oldPassword, newPassword, userId are required', data: [], status: 'Failure' });
+//     }
+
+//     const checkPassword = `SELECT Password, UserName FROM tbl_Users WHERE UserId = ${userId}`;
+
+//     SMTERP.query(checkPassword).then(result => {
+//         if (result.recordset[0] && result.recordset[0].Password === oldPassword) {
+//             const UserName = result.recordset[0].UserName;
+//             const changePassword = new sql.Request(SMTERP);
+
+//             changePassword.input('Mode', 2);
+//             changePassword.input('UserName', UserName)
+//             changePassword.input('password', md5Hash(newPassword));
+
+//             const result = await changePassword.execute('UsersSP');
+//             if (result) {
+//                 res.status(200).json({ data: [], status: 'Success', message: 'Changes Saved' });
+//             } else {
+//                 res.status(500).json({ data: [], status: 'Failure', message: 'Failed to Save changes' });
+//             }
+
+//         } else {
+//             return res.status(400).json({ message: 'Current password is incorrect', data: [], status: 'Failure' });
+//         }
+//     }).catch(e => {
+//         ServerError(e, 'ChangePassword', 'put', res)
+//     })
+// })
+
+userRoute.put('/api/changePassword', authenticateToken, async (req, res) => {
+    const { oldPassword, newPassword, userId } = req.body;
+
+    if (!oldPassword || !newPassword || !userId) {
+        return res.status(400).json({ message: 'oldPassword, newPassword, userId are required', data: [], status: 'Failure' });
+    }
+
+    const checkPassword = `SELECT Password, UserName FROM tbl_Users WHERE UserId = @userId`;
+    const request = new sql.Request(SMTERP).input('userId', userId);
+
+    try {
+        const result = await request.query(checkPassword);
+
+        if (result.recordset[0] && result.recordset[0].Password === md5Hash(oldPassword)) {
+            const UserName = result.recordset[0].UserName;
+            const changePassword = new sql.Request(SMTERP);
+
+            changePassword.input('Mode', 2);
+            changePassword.input('UserName', UserName)
+            changePassword.input('password', md5Hash(newPassword));
+
+            const changePasswordResult = await changePassword.execute('Change_Paswword_SP');
+
+            if (changePasswordResult.rowsAffected && changePasswordResult.rowsAffected[0] > 0) {
+                res.status(200).json({ data: [], status: 'Success', message: 'Password Updated' });
+            } else {
+                res.status(500).json({ data: [], status: 'Failure', message: 'Failed To Change Password' });
+            }
+            
+        } else {
+            res.status(400).json({ message: 'Current password does not match', data: [], status: 'Failure' });
+        }
+    } catch (e) {
+        ServerError(e, 'ChangePassword', 'put', res);
     }
 });
 
