@@ -38,7 +38,7 @@ purchaseOrederReport.get('/api/StockItemList', dbconnect, authenticateToken, asy
     }
 })
 
-purchaseOrederReport.get('/api/PurchaseOrderReport', dbconnect, authenticateToken, async (req, res) => {
+purchaseOrederReport.get('/api/PurchaseOrderReportCard', dbconnect, authenticateToken, async (req, res) => {
     try {
         const { Report_Type, Fromdate, Todate, Customer_Id, Item_Id, BillNo } = req.query;
         const guid = req.config.Tally_Guid;
@@ -64,7 +64,7 @@ purchaseOrederReport.get('/api/PurchaseOrderReport', dbconnect, authenticateToke
     }
 }) 
 
-purchaseOrederReport.get('/api/PurchaseOrderItemBased', dbconnect, authenticateToken, async (req, res) => {
+purchaseOrederReport.get('/api/PurchaseOrderReportTable', dbconnect, authenticateToken, async (req, res) => {
     try {
         const { Report_Type, Fromdate, Todate, Customer_Id, Item_Id, BillNo } = req.query;
         const guid = req.config.Tally_Guid;

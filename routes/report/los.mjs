@@ -55,7 +55,7 @@ losRoute.get('/api/listlos', authenticateToken, dbconnect, async (req, res) => {
 })
 
 losRoute.get('/api/stockabstract', authenticateToken, dbconnect, async (req, res) => {
-  const { Fromdate, Todate, Group_ST, Stock_Group, Bag, Brand, Item_Name } = req.query;
+  const { ReportDate, Group_ST, Stock_Group, Bag, Brand, Item_Name } = req.query;
   const guid = req.config.Tally_Guid;
   const company_id = req.config.Tally_Company_Id;
   const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -63,8 +63,8 @@ losRoute.get('/api/stockabstract', authenticateToken, dbconnect, async (req, res
     const DynamicDB = new sql.Request(req.db);
     DynamicDB.input('guid', sql.NVarChar, guid);
     DynamicDB.input('company_id', sql.VarChar, company_id.toString());
-    DynamicDB.input('Fromdate', sql.VarChar, Fromdate);
-    DynamicDB.input('Todate', sql.VarChar, Todate);
+    DynamicDB.input('Fromdate', sql.VarChar, ReportDate);
+    DynamicDB.input('Todate', sql.VarChar, ReportDate);
     DynamicDB.input('Group_ST', sql.VarChar, Group_ST);
     DynamicDB.input('Stock_Group', sql.VarChar, Stock_Group);
     DynamicDB.input('Bag', sql.VarChar, Bag);
