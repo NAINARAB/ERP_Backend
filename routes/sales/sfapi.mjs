@@ -12,6 +12,7 @@ SalesForceAPI.get('/api/sf/products', authenticateToken, async (req, res) => {
             const data = await response.json();
             res.json({ data: data, status: "Success", message: "" }).status(200);
         } else {
+            res.json({ status: 'Success', message:'Error fetching data', data: []})
             throw new Error(`Request failed with status ${response.status}`);
         }
     } catch (error) {
@@ -64,6 +65,7 @@ SalesForceAPI.get('/api/sf/retailers', authenticateToken, async (req, res) => {
             const data = await response.json();
             res.json({ data: data, status: "Success", message: "" }).status(200);
         } else {
+            res.json({ status: 'Success', message:'Error fetching data', data: []})
             throw new Error(`Request failed with status ${response.status}`);
         }
     } catch (error) {
@@ -127,6 +129,7 @@ SalesForceAPI.get('/api/sf/sfdetails', authenticateToken, async (req, res) => {
             const data = await response.json();
             res.json({ data: data, status: "Success", message: "" }).status(200);
         } else {
+            res.json({ status: 'Success', message:'Error fetching data', data: []})
             throw new Error(`Request failed with status ${response.status}`);
         }
     } catch (error) {
@@ -180,6 +183,7 @@ SalesForceAPI.get('/api/sf/routes', authenticateToken, async (req, res) => {
             const data = await response.json();
             res.json({ data: data, status: "Success", message: "" }).status(200);
         } else {
+            res.json({ status: 'Success', message:'Error fetching data', data: []})
             throw new Error(`Request failed with status ${response.status}`);
         }
     } catch (error) {
@@ -228,6 +232,7 @@ SalesForceAPI.get('/api/sf/distributors', authenticateToken, async (req, res) =>
             const data = await response.json();
             res.json({ data: data, status: "Success", message: "" }).status(200);
         } else {
+            res.json({ status: 'Success', message:'Error fetching data', data: []})
             throw new Error(`Request failed with status ${response.status}`);
         }
     } catch (error) {
@@ -284,6 +289,7 @@ SalesForceAPI.get('/api/sf/saleorders', authenticateToken, async (req, res) => {
             const data = await response.json();
             res.json({ data: data, status: "Success", message: "" }).status(200);
         } else {
+            res.json({ status: 'Success', message:'Error fetching data', data: []})
             throw new Error(`Request failed with status ${response.status}`);
         }
     } catch (error) {

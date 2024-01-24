@@ -17,7 +17,9 @@ import DesignationRoute from './routes/masters/designation.mjs';
 import EmpAttanance from './routes/attanance.mjs';
 import purchaseOrederReport from './routes/report/purchaseorder.mjs';
 import CustomerRoute from './routes/masters/customer.mjs';
-import CustomerReportRoute from './routes/report/customerReport.mjs'
+import CustomerReportRoute from './routes/report/customerReport.mjs';
+import PaymentRoute from './routes/payments/config.mjs';
+
 
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
@@ -25,9 +27,24 @@ require('dotenv').config();
 
 const app = express();
 app.use(cors());
-app.use(bodyParser.json({ limit: '50mb' }));
+app.use(express.json({ limit: '50mb' }));
 
-app.use(userRoutes, loginRoute, SalesForceAPI, BranchROute, SidebarRoute, PageRights, CompanyRoute, losRoute, DesignationRoute, EmpAttanance, purchaseOrederReport, CustomerRoute, CustomerReportRoute)
+app.use(
+  userRoutes,
+  loginRoute,
+  SalesForceAPI,
+  BranchROute,
+  SidebarRoute,
+  PageRights,
+  CompanyRoute,
+  losRoute,
+  DesignationRoute,
+  EmpAttanance,
+  purchaseOrederReport,
+  CustomerRoute,
+  CustomerReportRoute,
+  PaymentRoute
+)
 
 const pathList = [
   './routes/masters/user.mjs',
