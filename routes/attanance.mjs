@@ -148,14 +148,35 @@ EmpAttanance.put('/api/attendance', authenticateToken, async (req, res) => {
 })
 
 EmpAttanance.get('/api/UserAttendanceHistory', authenticateToken, async (req, res) => {
-    const { UserId } = req.query;
+    const { UserId, Mode } = req.query;
+
+    if (!UserId || !Mode) {
+        return res.status(400).json({ data: [], message: 'UserId, Mode is required', status: 'Failure' })
+    }
+
     try {
-        const Emp_Id = await getEmpId(UserId)
-        if (Emp_Id === 0) {
-            return res.json({ data: [], status: 'Failure', message: 'Not An Employee' })
-        }
-        const getAttendance = `SELECT * FROM tbl_Employee_Attanance WHERE Emp_Id = ${Emp_Id}`;
-        const result = await SMTERP.query(getAttendance)
+        const withId = `SELECT 
+                            a.*,  
+                            e.Emp_Name, 
+                            e.User_Mgt_Id
+                        FROM 
+                            tbl_Employee_Attanance as a
+                        JOIN tbl_Employee_Master as e 
+                            ON a.Emp_Id = e.Emp_Id
+                        WHERE a.Emp_Id = ${UserId} ORDER BY a.Emp_Id ASC`;
+        const withoutId =   `SELECT 
+                                a.*,  
+                                e.Emp_Name, 
+                                e.User_Mgt_Id
+                            FROM 
+                                tbl_Employee_Attanance as a
+                            JOIN tbl_Employee_Master as e 
+                                ON a.Emp_Id = e.Emp_Id
+                            ORDER BY 
+                            e.Emp_Name ASC, 
+                            a.Start_Date ASC`
+        const exeQruey = Number(Mode) === 1 ? withId : withoutId
+        const result = await SMTERP.query(exeQruey)
         if (result.recordset.length > 0) {
             res.json({ data: result.recordset, message: 'Available', status: 'Success' })
         } else {
@@ -166,30 +187,31 @@ EmpAttanance.get('/api/UserAttendanceHistory', authenticateToken, async (req, re
     }
 })
 
-EmpAttanance.get(' /api/UserAttendanceHistory ', authenticateToken, async (req, res) => {
-    try {
-        const getActiveEmp = `SELECT 
-                                a.Id, 
-                                a.Emp_Id, 
-                                e.Emp_Code, 
-                                e.Emp_Name, 
-                                a.Entry_Date, 
-                                a.Start_Date, 
-                                a.InTime 
-                            FROM tbl_Employee_Attanance AS a 
-                            JOIN tbl_Employee_Master as e 
-                            ON a.Emp_Id = e.Emp_Id 
-                            WHERE a.Current_St = 0`;
-        const result = await SMTERP.query(getActiveEmp);
-        if (result.recordset.length > 0) {
-            res.json({ data: result.recordset, status: "Success", message: 'Available' })
-        } else {
-            res.json({ data: [], status: "Success", message: 'Not Available' })
-        }
-    } catch (e) {
-        ServerError(e, ' /api/UserAttendanceHistory ', 'GET', res)
-    }
-})
+// EmpAttanance.get('/api/UserAttendanceHistory', async (req, res) => {
+//     console.log('i caleld')
+//     try {
+//         const getActiveEmp = `SELECT 
+//                                 a.Id, 
+//                                 a.Emp_Id, 
+//                                 e.Emp_Code, 
+//                                 e.Emp_Name, 
+//                                 a.Entry_Date, 
+//                                 a.Start_Date, 
+//                                 a.InTime 
+//                             FROM tbl_Employee_Attanance AS a 
+//                             JOIN tbl_Employee_Master as e 
+//                             ON a.Emp_Id = e.Emp_Id 
+//                             WHERE a.Current_St = 0`;
+//         const result = await SMTERP.query(getActiveEmp);
+//         if (result.recordset.length > 0) {
+//             res.json({ data: result.recordset, status: "Success", message: 'Available' })
+//         } else {
+//             res.json({ data: [], status: "Success", message: 'Not Available' })
+//         }
+//     } catch (e) {
+//         ServerError(e, ' /api/UserAttendanceHistory ', 'GET', res)
+//     }
+// })
 
 EmpAttanance.get('/api/ActiveEmployee', authenticateToken, async (req, res) => {
     try {
@@ -265,7 +287,7 @@ EmpAttanance.get('/api/TaskList', authenticateToken, async (req, res) => {
 
 EmpAttanance.get('/api/employeeDropDown', authenticateToken, async (req, res) => {
     try {
-        const selectEmp = `SELECT Emp_Id, Emp_Name FROM tbl_Employee_Master`
+        const selectEmp = `SELECT Emp_Id, Emp_Name, User_Mgt_Id FROM tbl_Employee_Master`
         const result = await SMTERP.query(selectEmp)
         if (result.recordset.length > 0) {
             res.json({ data: result.recordset, status: 'Success', message: 'Available' })
