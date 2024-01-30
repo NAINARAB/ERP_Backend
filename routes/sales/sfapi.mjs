@@ -3,6 +3,7 @@ import express from "express";
 import fetch from "node-fetch";
 const SalesForceAPI = express.Router()
 import authenticateToken from "../login-logout/auth.mjs";
+import ServerError from "../../config/handleError.mjs";
 
 SalesForceAPI.get('/api/sf/products', authenticateToken, async (req, res) => {
     const apiUrl = `https://api.salesjump.in/api/MasterData/getProductDetails?senderID=shri`;
@@ -10,14 +11,13 @@ SalesForceAPI.get('/api/sf/products', authenticateToken, async (req, res) => {
         const response = await fetch(apiUrl);
         if (response.ok) {
             const data = await response.json();
-            res.json({ data: data, status: "Success", message: "" }).status(200);
+            res.json({ data: data, status: "Success", message: "" }).status(response.status);
         } else {
-            res.json({ status: 'Success', message:'Error fetching data', data: []})
+            res.status(response.status).json({ status: 'Success', message:'Error fetching data', data: []})
             throw new Error(`Request failed with status ${response.status}`);
         }
-    } catch (error) {
-        console.error('Error:', error);
-        res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
+    } catch (e) {
+        ServerError(e, ' /api/sf/products', 'get', res);
     }
 });
 
@@ -52,8 +52,7 @@ SalesForceAPI.post('/api/sf/products', authenticateToken, async (req, res) => {
         }
         res.status(200).json({ message: 'Sync Completed', status: 'Success', data: [] });
     } catch (e) {
-        console.error('Error:', e);
-        res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
+        ServerError(e, ' /api/sf/products', 'Post', res);
     }
 });
 
@@ -68,9 +67,8 @@ SalesForceAPI.get('/api/sf/retailers', authenticateToken, async (req, res) => {
             res.json({ status: 'Success', message:'Error fetching data', data: []})
             throw new Error(`Request failed with status ${response.status}`);
         }
-    } catch (error) {
-        console.error('Error:', error);
-        res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
+    } catch (e) {
+        ServerError(e, ' /api/sf/retailers', 'Get', res);
     }
 });
 
@@ -116,8 +114,7 @@ SalesForceAPI.post('/api/sf/retailers', authenticateToken, async (req, res) => {
         }
         res.status(200).json({ message: 'Sync Completed', status: 'Success', data: [] });
     } catch (e) {
-        console.error('Error:', e);
-        res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
+        ServerError(e, ' /api/sf/retailers', 'Post', res);
     }
 });
 
@@ -133,8 +130,7 @@ SalesForceAPI.get('/api/sf/sfdetails', authenticateToken, async (req, res) => {
             throw new Error(`Request failed with status ${response.status}`);
         }
     } catch (error) {
-        console.error('Error:', error);
-        res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
+        ServerError(e, ' /api/sf/sfdetails', 'Get', res);
     }
 });
 
@@ -170,8 +166,7 @@ SalesForceAPI.post('/api/sf/sfdetails', authenticateToken, async (req, res) => {
         }
         res.status(200).json({ message: 'Sync Completed', status: 'Success', data: [] });
     } catch (e) {
-        console.error('Error:', e);
-        res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
+        ServerError(e, ' /api/sf/sfdetails', 'Post', res);
     }
 });
 
@@ -186,9 +181,8 @@ SalesForceAPI.get('/api/sf/routes', authenticateToken, async (req, res) => {
             res.json({ status: 'Success', message:'Error fetching data', data: []})
             throw new Error(`Request failed with status ${response.status}`);
         }
-    } catch (error) {
-        console.error('Error:', error);
-        res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
+    } catch (e) {
+        ServerError(e, ' /api/sf/routes', 'Get', res);
     }
 });
 
@@ -219,8 +213,7 @@ SalesForceAPI.post('/api/sf/routes', authenticateToken, async (req, res) => {
         }
         res.status(200).json({ message: 'Sync Completed', status: 'Success', data: [] });
     } catch (e) {
-        console.error('Error:', e);
-        res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
+        ServerError(e, ' /api/sf/routes', 'Post', res);
     }
 });
 
@@ -235,9 +228,8 @@ SalesForceAPI.get('/api/sf/distributors', authenticateToken, async (req, res) =>
             res.json({ status: 'Success', message:'Error fetching data', data: []})
             throw new Error(`Request failed with status ${response.status}`);
         }
-    } catch (error) {
-        console.error('Error:', error);
-        res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
+    } catch (e) {
+        ServerError(e, ' /api/sf/distributors', 'Get', res);
     }
 });
 
@@ -275,8 +267,7 @@ SalesForceAPI.post('/api/sf/distributors', authenticateToken, async (req, res) =
         }
         res.status(200).json({ message: 'Sync Completed', status: 'Success', data: [] });
     } catch (e) {
-        console.error('Error:', e);
-        res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
+        ServerError(e, ' /api/sf/distributors', 'Post', res);
     }
 });
 
@@ -287,14 +278,12 @@ SalesForceAPI.get('/api/sf/saleorders', authenticateToken, async (req, res) => {
         const response = await fetch(apiUrl);
         if (response.ok) {
             const data = await response.json();
-            res.json({ data: data, status: "Success", message: "" }).status(200);
+            return res.status(response.status).json({ data: data, status: "Success", message: "" })
         } else {
-            res.json({ status: 'Success', message:'Error fetching data', data: []})
-            throw new Error(`Request failed with status ${response.status}`);
+            return res.status(response.status).json({ status: 'Success', message:'Error fetching data', data: []})
         }
-    } catch (error) {
-        console.error('Error:', error);
-        res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
+    } catch (e) {
+        ServerError(e, ' /api/sf/saleorders', 'Get', res);
     }
 });
 
@@ -313,11 +302,10 @@ SalesForceAPI.get('/api/SaleOrder', authenticateToken, async (req, res) => {
         if (result) {
             res.json({ data: result.recordset, status: 'Success', message: '' });
         } else {
-            res.status(422).json({ data: [], status: 'Failure', message: 'Error' });
+            res.json({ data: [], status: 'Failure', message: 'Error' });
         }
     } catch (e) {
-        console.error('Error:', e);
-        res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
+        ServerError(e, ' /api/SaleOrder ', 'Get', res);
     }
 });
 
@@ -385,45 +373,44 @@ SalesForceAPI.post('/api/syncsalesorder', authenticateToken, async (req, res) =>
         }
         res.status(200).json({ message: 'Sync successful', status: 'Success', data: [] });
     } catch (e) {
-        console.error('Error executing SQL query:', e);
-        res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
+       ServerError(e, '/api/syncsalesorder', 'Post', res)
     }
 });
 
-SalesForceAPI.get('/api/listsalesorder', authenticateToken, (req, res) => {
-    const { start, end } = req.query;
-    const orders = `SELECT 
-      customerName,
-      docDate,
-      orderNo,
-      orderValue,
-      shippingAddress
-    FROM
-      tbl_Slaes_Order_SAF
-    WHERE
-      docDate >= '${start}' AND docDate <= '${end}'`;
-    SMTERP.query(orders)
-        .then(result => {
-            res.status(200).json({ status: "Success", data: result.recordset, message: "" });
-        })
-        .catch(err => {
-            console.error('Error executing SQL query:', err);
-            res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
-        })
+SalesForceAPI.get('/api/listsalesorder', authenticateToken, async (req, res) => {
+    try {
+        const { start, end } = req.query;
+        const orders = `
+            SELECT 
+                customerName,
+                docDate,
+                orderNo,
+                orderValue,
+                shippingAddress
+            FROM
+                tbl_Slaes_Order_SAF
+            WHERE
+                docDate >= '${start}' AND docDate <= '${end}'
+        `;
+        const result = await SMTERP.query(orders);
+        res.status(200).json({ status: "Success", data: result.recordset, message: "" });
+    } catch (e) {
+        ServerError(e, '/api/listsalesorder', 'Post', res)
+    }
 });
 
-SalesForceAPI.get('/api/orderinfo', authenticateToken, (req, res) => {
-    const { orderno } = req.query;
-    const orders = `SELECT * FROM tbl_Sales_Order_Product WHERE orderNo = '${orderno}'`;
-    SMTERP.query(orders)
-        .then(result => {
-            res.status(200).json({ status: "Success", data: result.recordset, message: "" });
-        })
-        .catch(err => {
-            console.error('Error executing SQL query:', err);
-            res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
-        })
+
+SalesForceAPI.get('/api/orderinfo', authenticateToken, async (req, res) => {
+    try {
+        const { orderno } = req.query;
+        const orders = `SELECT * FROM tbl_Sales_Order_Product WHERE orderNo = '${orderno}'`;
+        const result = await SMTERP.query(orders);
+        res.status(200).json({ status: "Success", data: result.recordset, message: "" });
+    } catch (e) {
+        ServerError(e, '/api/orderinfo', 'Get', res)
+    }
 });
+
 
 
 
