@@ -1,9 +1,9 @@
 import express from 'express';
 import cors from 'cors';
-import bodyParser from 'body-parser';
-import swaggerJSDoc from 'swagger-jsdoc';
-import swaggerUI from 'swagger-ui-express';
-import swaggerDefinition from './config/swager.mjs';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+require('dotenv').config();
+import apiData from './config/apis.mjs'
 
 import userRoutes from './routes/masters/user.mjs';
 import loginRoute from './routes/login-logout/login.mjs';
@@ -21,13 +21,111 @@ import CustomerReportRoute from './routes/report/customerReport.mjs';
 import PaymentRoute from './routes/payments/config.mjs';
 
 
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-require('dotenv').config();
 
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
+
+app.get('/', (req, res) => {
+  const bg = (method) => {
+    if(method === "GET"){
+      return '#00CDAC'
+    } else if (method === "POST"){
+      return '#DD2476'
+    } else if (method === "PUT"){
+      return '#A890FE'
+    } else {
+      return '#FF61D2'
+    }
+  }
+  const htmlContent = `
+  <html lang="en">
+    <head>
+      <title>SMTERP API</title>
+      <style>
+          table {
+              border: 1px solid black;
+          }
+  
+          th {
+              border: 1px solid black;
+              padding: 5px 20px;
+          }
+  
+          tr {
+              border: 1px solid black;
+              padding: 2px;
+          }
+  
+          td {
+              border: 1px solid black;
+              padding: 10px;
+              text-align: center;
+          }
+  
+          @font-face {
+              font-family: 'prosans';
+              font-style: normal;
+              font-weight: 400;
+              src: local('Open Sans'), local('OpenSans'), url(https://fonts.gstatic.com/s/productsans/v5/HYvgU2fE2nRJvZ5JFAumwegdm0LZdjqr5-oayXSOefg.woff2) format('woff2');
+          }
+  
+          * {
+              font-family: prosans;
+              box-sizing: border-box;
+          }
+  
+          body {
+              margin: 2em;
+              background: linear-gradient(45deg, #EE9CA7, #FFDDE1);
+          }
+  
+          
+      </style>
+      <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
+        ntegrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+      <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
+        crossorigin="anonymous"></script>
+    </head>
+  
+    <body class="p-3">
+      <h2 class=" text-dark">SMT APIs</h2>
+      <table class="table border">
+          <thead>
+              <tr>
+                  <th class="text-center border">SNo</th>
+                  <th class="text-center border">Method</th>
+                  <th class="text-center border">API</th>
+                  <th class="text-center border">Authorization</th>
+                  <th class="text-center border">header</th>
+                  <th class="text-center border">query</th>
+                  <th class="text-center border">param</th>
+                  <th class="text-center border">body</th>
+              </tr>
+          </thead>
+          <tbody>
+              ${apiData.map((item, index) => `
+              <tr>
+                  <td class="border">${index + 1}</td><!--sno-->
+                  <td class="border" style="background-color: ${bg(item.method)}">${item.method}</td><!--method-->
+                  <td class="border" style="text-align: left">${item.api}</td><!--api-->
+                  <td class="border">${item.authorization}</td><!--authorization-->
+                  <td class="border">${item.header}</td><!--header-->
+                  <td class="border">${item.query}</td><!--query-->
+                  <td class="border">${item.param}</td><!--param-->
+                  <td class="border">${item.body}</td><!--body-->
+              </tr>`
+              ).join('')}
+          </tbody>
+      </table>
+    </body>
+  
+  </html>
+  `;
+  res.setHeader('Content-Type', 'text/html');
+  res.send(htmlContent);
+});
 
 app.use(
   userRoutes,
@@ -45,37 +143,6 @@ app.use(
   CustomerReportRoute,
   PaymentRoute
 )
-
-const pathList = [
-  './routes/masters/user.mjs',
-  './routes/login-logout/login.mjs',
-  './routes/sales/sfapi.mjs',
-  './routes/masters/branch.mjs',
-  './routes/sidebar.mjs',
-  './routes/login-logout/pageRights.mjs',
-  './routes/company.mjs',
-  './routes/report/los.mjs',
-  './routes/masters/designation.mjs',
-  './config/apis.mjs',
-  './routes/attanance.mjs',
-];
-
-const options = {
-  swaggerDefinition: {
-    info: {
-      title: 'SMT API\'s',
-      version: '1.0.0',
-      description: 'Description of your API',
-    },
-    host: 'localhost:5000',
-    basePath: '/',
-  },
-  apis: pathList,
-};
-
-const swaggerSpec = swaggerJSDoc(options);
-app.use('/api', swaggerUI.serve, swaggerUI.setup(swaggerSpec));
-
 
 
 const port = process.env.PORT || 5000;

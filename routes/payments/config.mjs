@@ -171,8 +171,8 @@ PaymentRoute.post('/api/paymentVerify', async (req, res) => {
     res.status(200)
 });
 
-PaymentRoute.get('/api/PaymentHistory', authenticateToken, async (req, res) => {
-    const { paymentType, customerId } = req.query;
+PaymentRoute.get('/api/PaymentHistory', async (req, res) => {
+    const { paymentType, customerId, payStatus } = req.query;
     try {
         const queryType1 = `
         SELECT 
@@ -195,7 +195,7 @@ PaymentRoute.get('/api/PaymentHistory', authenticateToken, async (req, res) => {
 			JOIN tbl_DB_Name AS comp 
 			ON po.Comp_Id = comp.Id
         WHERE po.Payment_Type = ${paymentType} 
-            AND po.Verified_Status = 0`;
+            AND po.Verified_Status = ${payStatus}`;
 
         const queryType2 = `
         SELECT 
@@ -216,8 +216,7 @@ PaymentRoute.get('/api/PaymentHistory', authenticateToken, async (req, res) => {
 	        JOIN tbl_Customer_Master AS c
 	        ON c.Cust_Id = po.Cust_Id
 			JOIN tbl_DB_Name AS comp 
-			ON po.Comp_Id = comp.Id
-        WHERE po.Verified_Status != 0`;
+			ON po.Comp_Id = comp.Id`;
 
         const queryType3 = `SELECT 
                                 c.Customer_name,
@@ -238,15 +237,15 @@ PaymentRoute.get('/api/PaymentHistory', authenticateToken, async (req, res) => {
                                 ON c.Cust_Id = po.Cust_Id
                                 JOIN tbl_DB_Name AS comp 
                                 ON po.Comp_Id = comp.Id
-                            WHERE po.Payment_Type = ${paymentType} 
-                                AND po.Verified_Status = 0
+                            WHERE po.Payment_Type = '${paymentType}' 
+                                AND po.Verified_Status = '${payStatus}'
                                 AND po.Cust_Id = '${customerId}'`;
 
         let exequey;
 
-        if (customerId && paymentType) {
+        if (customerId && paymentType && payStatus) {
             exequey = queryType3;
-        } else if (paymentType) {
+        } else if (paymentType && payStatus) {
             exequey = queryType1
         }  else  {
             exequey = queryType2
@@ -304,6 +303,5 @@ PaymentRoute.post('/api/manualPaymentVerification', authenticateToken, async (re
         ServerError(e, '/manualPaymentVerification', 'Post', res);
     }
 });
-
 
 export default PaymentRoute;

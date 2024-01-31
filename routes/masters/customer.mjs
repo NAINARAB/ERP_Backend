@@ -341,7 +341,7 @@ CustomerRoute.put('/api/customer', authenticateToken, async (req, res) => {
     }
 });
 
-CustomerRoute.get('/api/isCustomer', authenticateToken, async (req, res) => {
+CustomerRoute.get('/api/isCustomer', async (req, res) => {
     const { UserId } = req.query;
     try {
         if (!UserId) {
@@ -352,9 +352,9 @@ CustomerRoute.get('/api/isCustomer', authenticateToken, async (req, res) => {
         const result = await SMTERP.query(checkCustomer);
 
         if (result.recordset.length === 0) {
-            res.status(404).json({ data: [], status: 'Failure', message: 'Not a Customer', isCustomer: false });
+            res.status(200).json({ data: [], status: 'Failure', message: 'Not a Customer', isCustomer: false });
         } else {
-            res.status(200).json({ data: [], status: 'Success', message: 'Customer Found', isCustomer: true });
+            res.status(200).json({ data: result.recordset, status: 'Success', message: 'Customer Found', isCustomer: true });
         }
 
     } catch (e) {
