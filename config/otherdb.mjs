@@ -3,6 +3,11 @@ import SMTERP from './erpdb.mjs';
 
 const dbconnect = async (req, res, next) => {
   const Db = req.get('Db');
+  
+  if (!Db) {
+    return res.status(400).json({data: [], status: 'Failure', message: 'Db-ID is required'})
+  }
+  
   let config = {
     driver: "SQL Server",
     stream: false,
