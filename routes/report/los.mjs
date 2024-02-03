@@ -138,7 +138,7 @@ losRoute.get('/api/stockReport', dbconnect, authenticateToken, async (req, res) 
       })
       return res.json({data: StockReport.recordset, status: 'Success', message: 'Data found'})
     } else {
-      return res.json({data: StockReport.recordset, status: 'Success', message: 'Data not found'})
+      return res.json({data: [], status: 'Success', message: 'Data not found'})
     }
   } catch (e) {
     ServerError(e, '/api/StockReport', 'Get', res)

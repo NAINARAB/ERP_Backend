@@ -40,7 +40,7 @@ purchaseOrederReport.get('/api/StockItemList', dbconnect, authenticateToken, asy
 
 purchaseOrederReport.get('/api/PurchaseOrderReportCard', dbconnect, authenticateToken, async (req, res) => {
     try {
-        const { Report_Type, Fromdate, Todate, Customer_Id, Item_Id, BillNo } = req.query;
+        const { Report_Type, Fromdate, Todate } = req.query;
         const guid = req.config.Tally_Guid;
 
         const DynamicDB = new sql.Request(req.db);
@@ -48,12 +48,11 @@ purchaseOrederReport.get('/api/PurchaseOrderReportCard', dbconnect, authenticate
         DynamicDB.input('Guid', guid);
         DynamicDB.input('Fromdate', Fromdate)
         DynamicDB.input('Todate', Todate);
-        // DynamicDB.input('Customer_Id', Customer_Id);
-        // DynamicDB.input('Stock_Group_Id', 0);
-        // DynamicDB.input('Item_Id', Item_Id);
-        // DynamicDB.input('BillNo', BillNo);
 
         const result = await DynamicDB.execute('Purchase_Order_Online_Report');
+        result.recordset.map(obj => {
+            obj.product_details = JSON.parse(obj.product_details)
+        })
         if(result.recordset.length > 0){
             res.json({data: result.recordset, status: 'Success', message: ''})
         } else {
