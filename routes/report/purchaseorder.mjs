@@ -10,12 +10,12 @@ purchaseOrederReport.get('/api/ledgerList', dbconnect, authenticateToken, async 
     try {
         const DynamicDB = new sql.Request(req.db);
         const result = await DynamicDB.execute('Ledger_List');
-        if(result && result.recordset.length > 0){
-            res.json({data: result.recordset, status: 'Success', message: ''})
+        if (result && result.recordset.length > 0) {
+            res.json({ data: result.recordset, status: 'Success', message: '' })
         } else {
-            res.json({data: [], status: 'Success', message: ''})
+            res.json({ data: [], status: 'Success', message: '' })
         }
-    } catch (e){
+    } catch (e) {
         ServerError(e, '/api/ledgerList', 'GET', res)
     }
 })
@@ -28,12 +28,12 @@ purchaseOrederReport.get('/api/StockItemList', dbconnect, authenticateToken, asy
         DynamicDB.input('Guid', guid);
         DynamicDB.input('Company_Id', company_id.toString());
         const result = await DynamicDB.execute('Stock_Item_List');
-        if(result && result.recordset.length > 0){
-            res.json({data: result.recordset, status: 'Success', message: ''})
+        if (result && result.recordset.length > 0) {
+            res.json({ data: result.recordset, status: 'Success', message: '' })
         } else {
-            res.json({data: [], status: 'Success', message: ''})
+            res.json({ data: [], status: 'Success', message: '' })
         }
-    } catch (e){
+    } catch (e) {
         ServerError(e, '/api/StockItemList', 'GET', res)
     }
 })
@@ -50,18 +50,27 @@ purchaseOrederReport.get('/api/PurchaseOrderReportCard', dbconnect, authenticate
         DynamicDB.input('Todate', Todate);
 
         const result = await DynamicDB.execute('Purchase_Order_Online_Report');
-        result.recordset.map(obj => {
-            obj.product_details = JSON.parse(obj.product_details)
-        })
-        if(result.recordset.length > 0){
-            res.json({data: result.recordset, status: 'Success', message: ''})
+        if (Number(Report_Type) !== 3) {
+            result.recordset.map(obj => {
+                obj.product_details = JSON.parse(obj.product_details)
+                obj.product_details.map(o => {
+                    o.product_details_1 = JSON.parse(o.product_details_1)
+                })
+            })
         } else {
-            res.json({data: [], status: 'Success', message: 'No Data'})
+            result.recordset.map(o => {
+                o.Order_details = JSON.parse(o.Order_details)
+            })
         }
-    } catch (e){
-        ServerError(e, '/api/PurchaseOrderReport', 'GET', res)
+        if (result.recordset.length > 0) {
+            res.json({ data: result.recordset, status: 'Success', message: '' })
+        } else {
+            res.json({ data: [], status: 'Success', message: 'No Data' })
+        }
+    } catch (e) {
+        ServerError(e, '/api/PurchaseOrderReportCard', 'GET', res)
     }
-}) 
+})
 
 purchaseOrederReport.get('/api/PurchaseOrderReportTable', dbconnect, authenticateToken, async (req, res) => {
     try {
@@ -79,12 +88,12 @@ purchaseOrederReport.get('/api/PurchaseOrderReportTable', dbconnect, authenticat
         DynamicDB.input('BillNo', BillNo);
 
         const result = await DynamicDB.execute('Purchase_Order_Report_Search');
-        if(result.recordset.length > 0){
-            res.json({data: result.recordset, status: 'Success', message: ''})
+        if (result.recordset.length > 0) {
+            res.json({ data: result.recordset, status: 'Success', message: '' })
         } else {
-            res.json({data: [], status: 'Success', message: 'No Data'})
+            res.json({ data: [], status: 'Success', message: 'No Data' })
         }
-    } catch (e){
+    } catch (e) {
         ServerError(e, '/api/PurchaseOrderReport', 'GET', res)
     }
 })

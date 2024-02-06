@@ -79,7 +79,11 @@ app.get('/', (req, res) => {
               margin: 2em;
               background: linear-gradient(45deg, #EE9CA7, #FFDDE1);
           }
-  
+
+          .tble-hed-stick {
+            position:sticky;
+            top: 0 ;
+          }
           
       </style>
       <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
@@ -92,32 +96,32 @@ app.get('/', (req, res) => {
     <body class="p-3">
       <h2 class=" text-dark">SMT APIs</h2>
       <table class="table border">
-          <thead>
-              <tr>
-                  <th class="text-center border">SNo</th>
-                  <th class="text-center border">Method</th>
-                  <th class="text-center border">API</th>
-                  <th class="text-center border">Authorization</th>
-                  <th class="text-center border">header</th>
-                  <th class="text-center border">query</th>
-                  <th class="text-center border">param</th>
-                  <th class="text-center border">body</th>
-              </tr>
-          </thead>
-          <tbody>
-              ${apiData.map((item, index) => `
-              <tr>
-                  <td class="border">${index + 1}</td><!--sno-->
-                  <td class="border" style="background-color: ${bg(item.method)}">${item.method}</td><!--method-->
-                  <td class="border" style="text-align: left">${item.api}</td><!--api-->
-                  <td class="border">${item.authorization}</td><!--authorization-->
-                  <td class="border">${item.header}</td><!--header-->
-                  <td class="border">${item.query}</td><!--query-->
-                  <td class="border">${item.param}</td><!--param-->
-                  <td class="border">${item.body}</td><!--body-->
-              </tr>`
-              ).join('')}
-          </tbody>
+        <thead>
+            <tr>
+              <th class="text-center border tble-hed-stick">SNo</th>
+              <th class="text-center border tble-hed-stick">Method</th>
+              <th class="text-center border tble-hed-stick">API</th>
+              <th class="text-center border tble-hed-stick">Authorization</th>
+              <th class="text-center border tble-hed-stick">header</th>
+              <th class="text-center border tble-hed-stick">query</th>
+              <th class="text-center border tble-hed-stick">param</th>
+              <th class="text-center border tble-hed-stick">body</th>
+            </tr>
+        </thead>
+        <tbody>
+          ${apiData.map((item, index) => `
+            <tr>
+              <td class="border">${index + 1}</td><!--sno-->
+              <td class="border" style="background-color: ${bg(item.method)}">${item.method}</td><!--method-->
+              <td class="border" style="text-align: left">${item.api}</td><!--api-->
+              <td class="border">${item.authorization}</td><!--authorization-->
+              <td class="border">${item.header}</td><!--header-->
+              <td class="border">${item.query}</td><!--query-->
+              <td class="border">${item.param}</td><!--param-->
+              <td class="border">${item.body}</td><!--body-->
+            </tr>`
+          ).join('')}
+        </tbody>
       </table>
     </body>
   
