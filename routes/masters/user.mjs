@@ -91,7 +91,7 @@ userRoute.put('/api/users', authenticateToken, async (req, res) => {
         newuser.input('BranchId', sql.Int, branch);
 
         const result = await newuser.execute('UsersSP');
-        if (result) {
+        if ( result.rowsAffected && result.rowsAffected[0] && result.rowsAffected[0] > 0) {
             res.status(200).json({ data: [], status: 'Success', message: 'Changes Saved' });
         } else {
             res.status(500).json({ data: [], status: 'Failure', message: 'Failed to Save changes' });
@@ -139,16 +139,17 @@ userRoute.delete('/api/users/:userid', authenticateToken, async (req, res) => {
 userRoute.get('/api/usertype', authenticateToken, async (req, res) => {
     try {
         const getCustomer = `SELECT * FROM tbl_User_Type WHERE IsActive = 1 ORDER BY Id ASC`;
-        const result = await SMTERP.query(getCustomer)
+        const result = await SMTERP.query(getCustomer);
         if (result && result.recordset.length > 0) {
             res.json({ data: result.recordset, status: "Success", message: "Found" }).status(200);
         } else {
             res.json({ data: [], status: "Success", message: "Not Found" }).status(200);
         }
     } catch (e) {
-        ServerError(e, '/api/customerCategories', 'get', res);
+        ServerError(e, '/api/usertype', 'get', res);
     }
 })
+
 
 userRoute.post('/api/usertype', authenticateToken, async (req, res) => {
     const { name, alias } = req.body;
@@ -192,14 +193,16 @@ userRoute.post('/api/usertype', authenticateToken, async (req, res) => {
 
 userRoute.delete('/api/usertype', authenticateToken, async (req, res) => {
     const { id } = req.query;
+
     if (!id) {
         return res.status(400).json({ data: [], status: 'Failure', message: 'id required' })
     }
+    
     try {
         const deleteCustomer = 'UPDATE tbl_User_Type SET IsActive = 0 WHERE Id = @id';
         const deleteRequest = new sql.Request(SMTERP);
         deleteRequest.input('id', sql.Int, id);
-        const result = await deleteRequest.query(deleteCustomer)
+        const result = await deleteRequest.query(deleteCustomer);
         if (result.rowsAffected.length > 0) {
             res.status(200).json({ data: [], status: "Success", message: "Deleted" });
         } else {
