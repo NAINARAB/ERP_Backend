@@ -19,6 +19,7 @@ import purchaseOrederReport from './routes/report/purchaseorder.mjs';
 import CustomerRoute from './routes/masters/customer.mjs';
 import CustomerReportRoute from './routes/report/customerReport.mjs';
 import PaymentRoute from './routes/payments/config.mjs';
+import TrackingLocation from './routes/tracking/liveLocation.mjs';
 
 
 
@@ -145,7 +146,8 @@ app.use(
   purchaseOrederReport,
   CustomerRoute,
   CustomerReportRoute,
-  PaymentRoute
+  PaymentRoute,
+  TrackingLocation
 )
 
 
