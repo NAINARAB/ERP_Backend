@@ -3,6 +3,7 @@ import SMTERP from '../../config/erpdb.mjs';
 import moment from 'moment';
 import express from 'express';
 import crypto from 'crypto';
+import { invalidInput, dataFound, falied, servError } from '../res.mjs';
 
 const loginRoute = express.Router();
 
@@ -59,12 +60,81 @@ loginRoute.put('/api/logout', async (req, res) => {
     if (sessionResult.recordset.length > 0) {
       res.status(200).json({ data: [], status: 'Success', message: 'Session Ended' });
     } else {
-      res.status(404).json({data: [], status: 'Failure', message: ''})
+      res.status(404).json({ data: [], status: 'Failure', message: '' })
     }
   }
   catch (e) {
     console.log(e)
     res.status(500).json({ message: 'Internal Server Error', status: 'Failure', data: [] });
+  }
+})
+
+loginRoute.get('/api/getUserByAuth', async (req, res) => {
+  const { Auth } = req.query;
+
+  if (!Auth) {
+    return invalidInput(res, 'Auth required');
+  }
+
+  try {
+    const query = `
+    SELECT
+      u.*,
+      COALESCE(
+        ut.UserType,
+        'UnKnown UserType'
+      ) AS UserType,
+      COALESCE(
+        b.BranchName,
+        'Unknown Branch'
+      ) AS BranchName,
+      COALESCE(
+        c.Company_id,
+        '0'
+      ) AS Company_id,
+      
+      (
+        SELECT 
+          TOP (1)
+          UserId,
+          SessionId,
+          InTime
+        FROM
+          UserLog
+        WHERE
+          UserId = u.UserId
+        ORDER BY
+          InTime DESC
+          FOR JSON PATH
+      ) AS session
+      
+    FROM 
+      tbl_Users AS u
+    LEFT JOIN
+      tbl_User_Type AS ut
+      ON ut.Id = u.UserTypeId
+    LEFT JOIN
+      tbl_Business_Master AS b
+      ON b.BranchId = u.BranchId
+    LEFT JOIN
+      tbl_Company_Master AS c
+      ON c.Company_id = b.Company_id
+      
+    WHERE
+      Autheticate_Id = '${Auth}'`;
+
+    const request = new sql.Request(SMTERP)
+
+    const result = await request.query(query);
+
+    if (result.recordset.length > 0) {
+      result.recordset[0].session = JSON.parse(result.recordset[0].session)
+      return dataFound(res, result.recordset)
+    } else {
+      return falied(res, 'User Not Found')
+    }
+  } catch (e) {
+    servError(e, res);
   }
 })
 

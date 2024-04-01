@@ -22,7 +22,7 @@ function invalidInput(res, message) {
 }
 
 
-module.exports = {
+export {
     dataFound,
     noData,
     falied,
