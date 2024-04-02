@@ -324,11 +324,11 @@ SalesForceAPI.post('/api/syncsalesorder', authenticateToken, async (req, res) =>
         }
         for (const obj of data) {
             const insertOrder = `
-          INSERT INTO tbl_Slaes_Order_SAF 
-          (billingAddress, customerId, customerName, distributorCode, docDate, docNumber, gstinNo, orderDate, orderNo, orderValue, placeofsupply, shippingAddress, stateName, transType, orderTakenBy)
-          VALUES 
-          (@billingAddress, @customerId, @customerName, @distributorCode, @docDate, @docNumber, @gstinNo, @orderDate, @orderNo, @orderValue, @placeofsupply, @shippingAddress, @stateName, @transType, @orderTakenBy)
-        `;
+              INSERT INTO tbl_Slaes_Order_SAF 
+              (billingAddress, customerId, customerName, distributorCode, docDate, docNumber, gstinNo, orderDate, orderNo, orderValue, placeofsupply, shippingAddress, stateName, transType, orderTakenBy)
+              VALUES 
+              (@billingAddress, @customerId, @customerName, @distributorCode, @docDate, @docNumber, @gstinNo, @orderDate, @orderNo, @orderValue, @placeofsupply, @shippingAddress, @stateName, @transType, @orderTakenBy)
+            `;
             const insertOrderResult = await SMTERP.request()
                 .input('billingAddress', obj.billingAddress)
                 .input('customerId', obj.customerId)
@@ -349,11 +349,11 @@ SalesForceAPI.post('/api/syncsalesorder', authenticateToken, async (req, res) =>
             if (insertOrderResult) {
                 for (const transobj of obj.transDetails) {
                     const insertProducts = `
-              INSERT INTO tbl_Sales_Order_Product
-              (actualQty, amount, billedQty, closeingStock, productCode, productName, rate, taxAmount, taxCode, taxPer, uom, orderNo)
-              VALUES
-              (@actualQty, @amount, @billedQty, @closeingStock, @productCode, @productName, @rate, @taxAmount, @taxCode, @taxPer, @uom, @orderNo)
-            `;
+                      INSERT INTO tbl_Sales_Order_Product
+                      (actualQty, amount, billedQty, closeingStock, productCode, productName, rate, taxAmount, taxCode, taxPer, uom, orderNo)
+                      VALUES
+                      (@actualQty, @amount, @billedQty, @closeingStock, @productCode, @productName, @rate, @taxAmount, @taxCode, @taxPer, @uom, @orderNo)
+                    `;
                     await SMTERP.request()
                         .input('actualQty', transobj.actualQty)
                         .input('amount', transobj.amount)
