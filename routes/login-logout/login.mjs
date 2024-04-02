@@ -128,7 +128,9 @@ loginRoute.get('/api/getUserByAuth', async (req, res) => {
     const result = await request.query(query);
 
     if (result.recordset.length > 0) {
-      result.recordset[0].session = JSON.parse(result.recordset[0].session)
+      result.recordset[0].session = result.recordset[0].session ? JSON.parse(result.recordset[0].session) : [{
+        UserId: result.recordset[0].UserId, SessionId: new Date(), InTime: new Date()
+      }]
       return dataFound(res, result.recordset)
     } else {
       return falied(res, 'User Not Found')

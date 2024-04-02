@@ -176,7 +176,6 @@ EmpAttanance.get('/api/UserAttendanceHistory', authenticateToken, async (req, re
                             a.Start_Date ASC,
                             e.Emp_Name ASC`
         const exeQruey = Number(Mode) === 1 ? withId : withoutId
-        console.log(exeQruey)
         const result = await SMTERP.query(exeQruey)
         if (result.recordset.length > 0) {
             res.json({ data: result.recordset, message: 'Available', status: 'Success' })
