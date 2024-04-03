@@ -21,8 +21,10 @@ const dbconnect = async (req, res, next) => {
   try {
     const fetchDbdata = new sql.Request(SMTERP);
     fetchDbdata.input('Id', sql.Int, Db);
+
     const result = await fetchDbdata.execute('Company_List_By_Id')
-    if (result.recordset.length === 1) {
+
+    if (result.recordset[0]) {
       config.server = result.recordset[0].IP_Address;
       config.database = result.recordset[0].SQL_DB_Name;
       config.user = result.recordset[0].SQL_User_Name;
@@ -30,6 +32,7 @@ const dbconnect = async (req, res, next) => {
       config.Tally_Company_Id = result.recordset[0].Tally_Company_Id;
       config.Tally_Guid = result.recordset[0].Tally_Guid;
       const DYNAMICDB = new sql.ConnectionPool(config);
+
       try {
         await DYNAMICDB.connect();
         req.db = DYNAMICDB;
@@ -40,7 +43,11 @@ const dbconnect = async (req, res, next) => {
         console.error('Error connecting to the database:', err);
         res.status(500).json({ message: "Db connection Failed", status: 'Failure', data: [] });
       }
+
+    } else {
+      return res.status(404).json({ message:'Invalid Db Id', status: 'Failure', data: [] });
     }
+
   } catch (err) {
     console.error('Error connecting to the database:', err);
     res.status(500).json({ message: "Db connection Failed", status: 'Failure', data: [] });
