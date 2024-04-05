@@ -2,7 +2,7 @@ import express from "express";
 import sql from 'mssql'
 import SMTERP from "../config/erpdb.mjs";
 import authenticateToken from "./login-logout/auth.mjs";
-import { dataFound, falied, invalidInput, noData, servError } from "./res.mjs";
+import { dataFound, falied, invalidInput, servError } from "./res.mjs";
 
 const CompanyRoute = express.Router()
 
