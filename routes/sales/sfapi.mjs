@@ -13,7 +13,7 @@ SalesForceAPI.get('/api/sf/products', authenticateToken, async (req, res) => {
             const data = await response.json();
             res.json({ data: data, status: "Success", message: "" }).status(response.status);
         } else {
-            res.status(response.status).json({ status: 'Success', message:'Error fetching data', data: []})
+            res.status(response.status).json({ status: 'Success', message: 'Error fetching data', data: [] })
             throw new Error(`Request failed with status ${response.status}`);
         }
     } catch (e) {
@@ -64,7 +64,7 @@ SalesForceAPI.get('/api/sf/retailers', authenticateToken, async (req, res) => {
             const data = await response.json();
             res.json({ data: data, status: "Success", message: "" }).status(200);
         } else {
-            res.json({ status: 'Success', message:'Error fetching data', data: []})
+            res.json({ status: 'Success', message: 'Error fetching data', data: [] })
             throw new Error(`Request failed with status ${response.status}`);
         }
     } catch (e) {
@@ -126,7 +126,7 @@ SalesForceAPI.get('/api/sf/sfdetails', authenticateToken, async (req, res) => {
             const data = await response.json();
             res.json({ data: data, status: "Success", message: "" }).status(200);
         } else {
-            res.json({ status: 'Success', message:'Error fetching data', data: []})
+            res.json({ status: 'Success', message: 'Error fetching data', data: [] })
             throw new Error(`Request failed with status ${response.status}`);
         }
     } catch (error) {
@@ -178,7 +178,7 @@ SalesForceAPI.get('/api/sf/routes', authenticateToken, async (req, res) => {
             const data = await response.json();
             res.json({ data: data, status: "Success", message: "" }).status(200);
         } else {
-            res.json({ status: 'Success', message:'Error fetching data', data: []})
+            res.json({ status: 'Success', message: 'Error fetching data', data: [] })
             throw new Error(`Request failed with status ${response.status}`);
         }
     } catch (e) {
@@ -225,7 +225,7 @@ SalesForceAPI.get('/api/sf/distributors', authenticateToken, async (req, res) =>
             const data = await response.json();
             res.json({ data: data, status: "Success", message: "" }).status(200);
         } else {
-            res.json({ status: 'Success', message:'Error fetching data', data: []})
+            res.json({ status: 'Success', message: 'Error fetching data', data: [] })
             throw new Error(`Request failed with status ${response.status}`);
         }
     } catch (e) {
@@ -280,7 +280,7 @@ SalesForceAPI.get('/api/sf/saleorders', authenticateToken, async (req, res) => {
             const data = await response.json();
             return res.status(response.status).json({ data: data, status: "Success", message: "" })
         } else {
-            return res.status(response.status).json({ status: 'Success', message:'Error fetching data', data: []})
+            return res.status(response.status).json({ status: 'Success', message: 'Error fetching data', data: [] })
         }
     } catch (e) {
         ServerError(e, ' /api/sf/saleorders', 'Get', res);
@@ -331,7 +331,7 @@ SalesForceAPI.post('/api/syncsalesorder', authenticateToken, async (req, res) =>
             `;
             const insertOrderResult = await SMTERP.request()
                 .input('billingAddress', obj.billingAddress)
-                .input('customerId', obj.customerId)
+                .input('customerId', obj.customerCode)
                 .input('customerName', obj.customerName)
                 .input('distributorCode', obj.distributorCode)
                 .input('docDate', obj.docDate)
@@ -346,34 +346,32 @@ SalesForceAPI.post('/api/syncsalesorder', authenticateToken, async (req, res) =>
                 .input('transType', obj.transType)
                 .input('orderTakenBy', obj.orderTakenBy)
                 .query(insertOrder);
-            if (insertOrderResult) {
-                for (const transobj of obj.transDetails) {
-                    const insertProducts = `
+            for (const transobj of obj.transDetails) {
+                const insertProducts = `
                       INSERT INTO tbl_Sales_Order_Product
                       (actualQty, amount, billedQty, closeingStock, productCode, productName, rate, taxAmount, taxCode, taxPer, uom, orderNo)
                       VALUES
                       (@actualQty, @amount, @billedQty, @closeingStock, @productCode, @productName, @rate, @taxAmount, @taxCode, @taxPer, @uom, @orderNo)
                     `;
-                    await SMTERP.request()
-                        .input('actualQty', transobj.actualQty)
-                        .input('amount', transobj.amount)
-                        .input('billedQty', transobj.billedQty)
-                        .input('closeingStock', transobj.closeingStock)
-                        .input('productCode', transobj.productCode)
-                        .input('productName', transobj.productName)
-                        .input('rate', transobj.rate)
-                        .input('taxAmount', transobj.taxAmount)
-                        .input('taxCode', transobj.taxCode)
-                        .input('taxPer', transobj.taxPer)
-                        .input('uom', transobj.uom)
-                        .input('orderNo', obj.orderNo)
-                        .query(insertProducts);
-                }
+                await SMTERP.request()
+                    .input('actualQty', transobj.actualQty)
+                    .input('amount', transobj.amount)
+                    .input('billedQty', transobj.billedQty)
+                    .input('closeingStock', transobj.closeingStock)
+                    .input('productCode', transobj.productCode)
+                    .input('productName', transobj.productName)
+                    .input('rate', transobj.rate)
+                    .input('taxAmount', transobj.taxAmount)
+                    .input('taxCode', transobj.taxCode)
+                    .input('taxPer', transobj.taxPer)
+                    .input('uom', transobj.uom)
+                    .input('orderNo', obj.orderNo)
+                    .query(insertProducts);
             }
         }
         res.status(200).json({ message: 'Sync successful', status: 'Success', data: [] });
     } catch (e) {
-       ServerError(e, '/api/syncsalesorder', 'Post', res)
+        ServerError(e, '/api/syncsalesorder', 'Post', res)
     }
 });
 

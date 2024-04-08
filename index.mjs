@@ -20,6 +20,7 @@ import CustomerRoute from './routes/masters/customer.mjs';
 import CustomerReportRoute from './routes/report/customerReport.mjs';
 import PaymentRoute from './routes/payments/config.mjs';
 import TrackingLocation from './routes/tracking/liveLocation.mjs';
+import SfRouter from './SFRoutes/routes.mjs';
 
 
 
@@ -147,7 +148,8 @@ app.use(
   CustomerRoute,
   CustomerReportRoute,
   PaymentRoute,
-  TrackingLocation
+  TrackingLocation,
+  SfRouter
 )
 
 
