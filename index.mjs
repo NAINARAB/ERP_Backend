@@ -3,7 +3,15 @@ import cors from 'cors';
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 require('dotenv').config();
-import apiData from './config/apis.mjs'
+import apiData from './config/apis.mjs';
+import path from 'path';
+
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 
 import userRoutes from './routes/masters/user.mjs';
 import loginRoute from './routes/login-logout/login.mjs';
@@ -152,6 +160,11 @@ app.use(
   SfRouter
 )
 
+const productsStaticPath = path.join(__dirname, 'uploads', 'products');
+app.use('/imageURL/products', express.static(productsStaticPath));
+
+const retailersStaticPath = path.join(__dirname, 'uploads', 'retailers');
+app.use('/imageURL/retailers', express.static(retailersStaticPath));
 
 const port = process.env.PORT || 5000;
 app.listen(port, () => {

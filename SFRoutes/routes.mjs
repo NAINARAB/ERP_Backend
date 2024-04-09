@@ -3,13 +3,27 @@ import RetailerControll from "../SFController/sfRetailers.mjs";
 import sfProductController from "../SFController/sfProducts.mjs";
 import sfDistributors from "../SFController/sfDistributors.mjs";
 import sfRoutes from "../SFController/sfRoutes.mjs";
+import sfMasters from "../SFController/sfMasters.mjs";
 
 const SfRouter = express.Router();
 
+//sfMasters
+SfRouter.get('/api/saniForce/state', sfMasters.getStates);
+
+SfRouter.get('/api/saniForce/district', sfMasters.getDistricts);
+
+SfRouter.get('/api/saniForce/areas', sfMasters.getAreas);
+
+SfRouter.get('/api/saniForce/outlets', sfMasters.getOutlet);
+
+
+
 // retailersApi
 SfRouter.get('/api/saniForce/retailers', RetailerControll.getSFCustomers);
-SfRouter.put('/api/saniForce/retailers', RetailerControll.putLocationForCustomer);
-SfRouter.put('/api/saniForce/retailers', RetailerControll.verifyLocation)
+SfRouter.post('/api/saniForce/retailers', RetailerControll.addRetailers);
+SfRouter.put('/api/saniForce/retailers', RetailerControll.verifyLocation);
+
+SfRouter.post('/api/saniForce/retailerLocation', RetailerControll.postLocationForCustomer)
 
 
 // productApi

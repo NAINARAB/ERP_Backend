@@ -7,7 +7,7 @@ const sfRoutes = () => {
     const getRoutes = async (req, res) => {
         
         try {
-            const result = await SFDB.query('SELECT * FROM tbl_SF_Routes');
+            const result = await SFDB.query('SELECT * FROM tbl_Route_Master');
             
             if (result.recordset.length) {
                 dataFound(res, result.recordset);
@@ -20,11 +20,37 @@ const sfRoutes = () => {
     } 
 
     const addRoutes = async (req, res) => {
-        
+        const { Route_Name } = req.body;
+
+        if (!Route_Name) {
+            return invalidInput(res, 'Route_Name is required')
+        }
+
+        try {
+            const query = `
+            INSERT INTO tbl_Route_Master
+                (Route_Name)
+            VALUES
+                (@route)`;
+            const request = new sql.Request(SFDB);
+            request.input('route', Route_Name);
+
+            const result = await request.query(query);
+
+            if(result.rowsAffected[0] && result.rowsAffected[0] > 0) {
+                success(res, 'new Route Created')
+            } else {
+                falied(res, 'Failed to create Route')
+            }
+            
+        } catch (e) {
+            servError(e, res)
+        }
     }
 
     return {
         getRoutes,
+        addRoutes
     }
 }
 
