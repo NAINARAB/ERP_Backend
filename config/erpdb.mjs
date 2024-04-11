@@ -14,6 +14,7 @@ const ERPSMTCONFIG = {
     trustedConnection: true,
     trustServerCertificate: true,
     enableArithAbort: true,
+    requestTimeout: 60000,
   }
 };
 
