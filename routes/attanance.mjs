@@ -148,42 +148,47 @@ EmpAttanance.put('/api/attendance', authenticateToken, async (req, res) => {
 })
 
 EmpAttanance.get('/api/UserAttendanceHistory', authenticateToken, async (req, res) => {
-    const { UserId, Mode } = req.query;
-
-    if (!UserId || !Mode) {
-        return res.status(400).json({ data: [], message: 'UserId, Mode is required', status: 'Failure' })
-    }
+    const { UserId, From, To } = req.query;
 
     try {
-        const withId = `SELECT 
-                            a.*,  
-                            e.Emp_Name, 
-                            e.User_Mgt_Id
-                        FROM 
-                            tbl_Employee_Attanance as a
-                        JOIN tbl_Employee_Master as e 
-                            ON a.Emp_Id = e.Emp_Id
-                        WHERE a.Emp_Id = ${UserId} ORDER BY a.Start_Date DEC`;
-        const withoutId = `SELECT 
-                                a.*,  
-                                e.Emp_Name, 
-                                e.User_Mgt_Id
-                            FROM 
-                                tbl_Employee_Attanance as a
-                            JOIN tbl_Employee_Master as e 
-                                ON a.Emp_Id = e.Emp_Id
-                            ORDER BY 
-                            a.Start_Date ASC,
-                            e.Emp_Name ASC`
-        const exeQruey = Number(Mode) === 1 ? withId : withoutId
-        const result = await SMTERP.query(exeQruey)
+        let query = `
+        SELECT 
+            a.*,  
+            e.Emp_Name, 
+            e.User_Mgt_Id
+        FROM 
+            tbl_Employee_Attanance AS a
+        JOIN tbl_Employee_Master AS e 
+            ON a.Emp_Id = e.Emp_Id
+        WHERE 
+            a.Id > 0`;
+
+        if (Number(UserId)) {
+            query += ` AND a.Emp_Id = '${UserId}'`;
+        }
+
+        if (From && To) {
+            query += `
+            AND CONVERT(DATE, a.Start_Date) >= '${From}'
+            AND CONVERT(DATE, a.Start_Date) <= '${To}'`;
+        }
+
+        query += `
+        ORDER BY 
+            CONVERT(DATE, a.Start_Date) ASC,
+            e.Emp_Name ASC`;
+
+        const request = new sql.Request(SMTERP)
+
+        const result = await request.query(query);
+
         if (result.recordset.length > 0) {
-            res.json({ data: result.recordset, message: 'Available', status: 'Success' })
+            res.json({ data: result.recordset, message: 'Available', status: 'Success' });
         } else {
-            res.json({ data: [], message: 'Not Available', status: 'Success' })
+            res.json({ data: [], message: 'Not Available', status: 'Success' });
         }
     } catch (e) {
-        ServerError(e, ' /api/attendance ', 'GET', res)
+        ServerError(e, ' /api/UserAttendanceHistory ', 'GET', res);
     }
 })
 
@@ -215,32 +220,6 @@ EmpAttanance.get('/api/attendance/MyAttendance', authenticateToken, async (req, 
         ServerError(e, '/api/attendance/MyAttendance', 'Get', res)
     }
 })
-
-// EmpAttanance.get('/api/UserAttendanceHistory', async (req, res) => {
-//     console.log('i caleld')
-//     try {
-//         const getActiveEmp = `SELECT 
-//                                 a.Id, 
-//                                 a.Emp_Id, 
-//                                 e.Emp_Code, 
-//                                 e.Emp_Name, 
-//                                 a.Entry_Date, 
-//                                 a.Start_Date, 
-//                                 a.InTime 
-//                             FROM tbl_Employee_Attanance AS a 
-//                             JOIN tbl_Employee_Master as e 
-//                             ON a.Emp_Id = e.Emp_Id 
-//                             WHERE a.Current_St = 0`;
-//         const result = await SMTERP.query(getActiveEmp);
-//         if (result.recordset.length > 0) {
-//             res.json({ data: result.recordset, status: "Success", message: 'Available' })
-//         } else {
-//             res.json({ data: [], status: "Success", message: 'Not Available' })
-//         }
-//     } catch (e) {
-//         ServerError(e, ' /api/UserAttendanceHistory ', 'GET', res)
-//     }
-// })
 
 EmpAttanance.get('/api/ActiveEmployee', authenticateToken, async (req, res) => {
     try {
