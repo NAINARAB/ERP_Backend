@@ -29,6 +29,7 @@ import CustomerReportRoute from './routes/report/customerReport.mjs';
 import PaymentRoute from './routes/payments/config.mjs';
 import TrackingLocation from './routes/tracking/liveLocation.mjs';
 import SfRouter from './SFRoutes/routes.mjs';
+import MultipleAttendance from './routes/attendanceNew.mjs';
 
 
 
@@ -157,7 +158,8 @@ app.use(
   CustomerReportRoute,
   PaymentRoute,
   TrackingLocation,
-  SfRouter
+  SfRouter,
+  MultipleAttendance,
 )
 
 const productsStaticPath = path.join(__dirname, 'uploads', 'products');

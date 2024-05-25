@@ -21,11 +21,16 @@ function invalidInput(res, message) {
     return res.status(400).json({ data: [], status: "Failure", message: message || 'Invalid request' })
 }
 
+function success(res, message, data) {
+    return res.status(200).json({ data: data || [], message: message || 'Done!', status: "Success" });
+}
+
 
 export {
     dataFound,
     noData,
     falied,
     servError,
-    invalidInput
+    invalidInput,
+    success
 }
