@@ -190,6 +190,88 @@ const getAttendanceHistory = async (req, res) => {
     }
 }
 
+const getLeaveDays = async (req, res) => {
+    const { Fromdate, Todate } = req.query;
+
+    try {
+        let query =`
+        SELECT 
+            l.*,
+            u.Name
+        FROM 
+            tbl_Leave_Master AS l
+            
+            LEFT JOIN tbl_Users AS u
+            ON u.UserId = l.UserId `
+        
+        if (Fromdate && Todate) {
+            query += ` 
+            WHERE 
+                CONVERT(DATE, l.LeaveDate) >= CONVERT(DATE, @from)
+                AND
+                CONVERT(DATE, l.LeaveDate) <= CONVERT(DATE, @TO)
+            `
+        }
+
+        query += `
+        ORDER BY
+            CONVERT(DATE, l.LeaveDate)`;
+
+        const request = new sql.Request(SMTERP);
+        request.input('from', Fromdate);
+        request.input('to', Todate);
+
+        const result = await request.query(query);
+        if (result.recordset.length > 0) {
+            dataFound(res, result.recordset);
+        } else {
+            noData(res)
+        }
+    } catch (e) {
+        servError(e, res);
+    }
+}
+
+const createLeaveDay = async (req, res) => {
+    const { LeaveDate, LeaveInfo, UserId } = req.body;
+
+    if (!LeaveDate || isNaN(UserId)) {
+        return invalidInput(res, 'LeaveDate, UserId is required');
+    }
+
+    try {
+        const checkIfAlreadyExists = await SMTERP.query(
+            `SELECT COUNT(LeaveDate) AS LeaveCount FROM tbl_Leave_Master WHERE CONVERT(DATE, LeaveDate) = CONVERT(DATE, '${new Date(LeaveDate)}')`
+        )
+
+        if (checkIfAlreadyExists.recordset[0]?.LeaveCount > 0) {
+            return falied(res, 'Already Exists')
+        }
+
+        const query = `
+        INSERT INTO tbl_Leave_Master 
+            (LeaveDate, LeaveInfo, CreatedBy, CreatedAt) 
+        VALUES
+            (@date, @info, @creat, @at)`;
+        
+        const request = new sql.Request(SMTERP);
+        request.input('date', LeaveDate);
+        request.input('info', LeaveInfo);
+        request.input('creat', UserId);
+        request.input('at', new Date());
+
+        const result = await request.query(query);
+
+        if (result.recordset.length > 0) {
+            success(res, 'Leave Day Created');
+        } else {
+            falied(res, 'Failed to create leave day')
+        }
+    } catch (e) {
+        servError(e, res);
+    }
+}
+
 MultipleAttendance.post('/api/newAttendance', authenticateToken, addAttendance);
 MultipleAttendance.put('/api/newAttendance', authenticateToken, closeAttendance);
 MultipleAttendance.delete('/api/newAttendance', authenticateToken, closeAttendance);
@@ -197,5 +279,10 @@ MultipleAttendance.delete('/api/newAttendance', authenticateToken, closeAttendan
 MultipleAttendance.get('/api/myTodayAttendance', authenticateToken, getMyTodayAttendance);
 MultipleAttendance.get('/api/myAttendanceHistory', authenticateToken, getAttendanceHistory);
 MultipleAttendance.get('/api/getMyLastAttendance', authenticateToken, getMyLastAttendanceOfToday);
+
+//leave management
+
+MultipleAttendance.get('/api/leaveDays', authenticateToken, getLeaveDays);
+MultipleAttendance.post('/api/leaveDays', authenticateToken, createLeaveDay);
 
 export default MultipleAttendance
